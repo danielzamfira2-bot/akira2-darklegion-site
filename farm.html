@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Strategia de farm Akira2 DarkLegion, organizată pe tier-uri.">
+  <title>Strategie Farm · Akira2 DarkLegion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="farm.css">
+</head>
+<body>
+  <header class="farm-header">
+    <a class="brand" href="index.html">AKIRA<span>2</span><small>DARKLEGION</small></a>
+    <button class="menu-button" aria-expanded="false" aria-label="Deschide meniul">☰</button>
+    <nav class="farm-nav" aria-label="Navigare principală">
+      <a href="index.html">Acasă</a>
+      <a href="events.html">Evenimente</a>
+      <a href="index.html#rase">Ghiduri rase</a>
+      <a class="active" href="farm.html">Strategie Farm</a>
+      <a href="regulament.html">Regulament</a>
+    </nav>
+  </header>
+
+  <main class="farm-page">
+    <section class="farm-hero">
+      <p class="eyebrow">AKIRA2 DARKLEGION · PLAN DE PROGRES</p>
+      <h1>Strategie de <em>farm</em></h1>
+      <p>Un traseu comun pentru toate rasele, de la primul cont până la activitățile avansate din Yohara.</p>
+      <div class="access-legend"><span>Tier I · public</span><span>Tier II · rol Discord</span><span>Tier III · rol Discord</span></div>
+    </section>
+
+    <section class="farm-tier public-tier" id="pregatire">
+      <header class="tier-heading">
+        <div><span class="tier-number">00</span><p class="eyebrow">GHID NIVEL 1 · SPRE TIER I</p><h2>Pregătirea conturilor</h2></div>
+        <span class="access-badge open">PUBLIC</span>
+      </header>
+      <div class="strategy-grid">
+        <article><span>01</span><h3>Evenimente</h3><p>Folosește la maximum Summer Event și Beginner Event atunci când sunt active.</p></article>
+        <article><span>02</span><h3>Medalii</h3><p>Parcurge Temnița Maimuțelor pentru medalii.</p></article>
+        <article><span>03</span><h3>Energie</h3><p>Farmează Fragmente de Energie cu ajutorul Ciocanelor.</p></article>
+        <article><span>04</span><h3>Pescuit</h3><p>Pescuire Yabbie și pești pentru diferite elemente, Tare și Apărare.</p></article>
+        <article><span>05</span><h3>Minerit</h3><p>Minimum 4 conturi de nivel 30 pentru Diamant și Lacrima Cerului.</p></article>
+        <article><span>06</span><h3>Nivel 50–60</h3><p>Cont în SD3 pentru evenimente secundare: CL-uri Hexagonale, Medalia Eroilor, Mingi și altele.</p></article>
+        <article><span>07</span><h3>Nivel 75</h3><p>Crește conturile în SD3 până la nivelul 75.</p></article>
+        <article><span>08</span><h3>Farm nivel 75</h3><p>Pădurea Roșie pentru metine, Turnul Demonilor și Azrael.</p></article>
+      </div>
+    </section>
+
+    <section class="farm-tier public-tier" id="tier-1">
+      <header class="tier-heading">
+        <div><span class="tier-number">01</span><p class="eyebrow">TIER I</p><h2>Strategia de farm</h2></div>
+        <span class="access-badge open">PUBLIC</span>
+      </header>
+      <div class="strategy-columns">
+        <article><small>TEMNIȚE</small><h3>Bossi și instanțe</h3><ul><li>Nemere, Razador, Jotun și Dragon.</li><li>Hydra în doi.</li><li>Meley cu grupa/breasla: 8 conturi, o dată la 3 ore.</li></ul></article>
+        <article><small>YOHARA</small><h3>Metine și bossi</h3><ul><li>Farm în Harta Fermecată la metine.</li><li>Bossi din Mapele Beta și Yohara Map 1.</li><li>Creșterea conturilor până la nivelul 4 Campion.</li></ul></article>
+        <article><small>EVENIMENTE</small><h3>Farm secundar</h3><ul><li>Evenimente secundare; excepție Baloanele și CL-urile Hexagonale dacă poți farma Harta Fermecată.</li><li>În Yohara Map 1 ai drop la acestea.</li><li>Farmer SD3 pentru CL-uri.</li></ul></article>
+      </div>
+    </section>
+
+    <section class="farm-tier protected-tier locked" id="tier-2" data-tier="2">
+      <header class="tier-heading"><div><span class="tier-number">02</span><p class="eyebrow">TIER II</p><h2>Strategie intermediară</h2></div><span class="access-badge">BLOCAT</span></header>
+      <div class="locked-panel"><span class="lock-icon">◇</span><h3>Necesită rolul Tier 2</h3><p>Autentifică-te cu Discord pentru a verifica accesul.</p><a href="/auth/discord?return=%2Ffarm.html%23tier-2">Login cu Discord →</a></div>
+    </section>
+
+    <section class="farm-tier protected-tier locked" id="tier-3" data-tier="3">
+      <header class="tier-heading"><div><span class="tier-number">03</span><p class="eyebrow">TIER III</p><h2>Strategie avansată</h2></div><span class="access-badge">BLOCAT</span></header>
+      <div class="locked-panel"><span class="lock-icon">◇</span><h3>Necesită rolul Tier 3</h3><p>Conținutul este încărcat numai după verificarea rolului Discord.</p><a href="/auth/discord?return=%2Ffarm.html%23tier-3">Login cu Discord →</a></div>
+    </section>
+  </main>
+
+  <footer><span>AKIRA2 DARKLEGION</span><p>Strategia se actualizează odată cu progresul grupului.</p></footer>
+  <script src="farm.js"></script>
+  <script src="/auth-ui.js"></script>
+</body>
+</html>

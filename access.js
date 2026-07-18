@@ -1,6 +1,14 @@
 const statusBox = document.querySelector('#discord-access');
 const errorBox = document.querySelector('#access-error');
 const params = new URLSearchParams(location.search);
+const accessHeaderNav = document.querySelector('.guide-header > nav');
+
+if (accessHeaderNav && !accessHeaderNav.querySelector('a[href="farm.html"]')) {
+  const farmLink = document.createElement('a');
+  farmLink.href = 'farm.html';
+  farmLink.textContent = 'Strategie Farm';
+  accessHeaderNav.insertBefore(farmLink, accessHeaderNav.lastElementChild);
+}
 const errorMessages = {
   invalid_state: 'Sesiunea de autentificare a expirat. Încearcă din nou.',
   not_in_guild: 'Contul Discord nu este membru al serverului configurat.',

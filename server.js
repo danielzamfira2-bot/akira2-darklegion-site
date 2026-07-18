@@ -8,6 +8,7 @@ import connectPgSimple from 'connect-pg-simple';
 import pg from 'pg';
 import helmet from 'helmet';
 import { protectedGuides } from './server/protected-guides.js';
+import { protectedFarmStrategies } from './server/protected-farm.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
@@ -227,10 +228,22 @@ app.get('/api/guides/:race/tier/:tier', async (req, res) => {
   res.json({ race, tier, guide: protectedGuides[tier] });
 });
 
+app.get('/api/farm/tier/:tier', async (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  const tier = Number(req.params.tier);
+  if (![2, 3].includes(tier)) return res.status(404).json({ error: 'Strategie inexistentă.' });
+  if (!req.session.user) return res.status(401).json({ error: 'Autentificare necesară.' });
+
+  await refreshRoles(req);
+  if ((req.session.tier || 1) < tier) return res.status(403).json({ error: 'Rol Discord insuficient.' });
+  res.json({ tier, strategy: protectedFarmStrategies[tier] });
+});
+
 const publicFiles = new Set([
   'index.html', 'styles.css', 'script.js', 'guide-basics.css', 'guide.js',
   'events.html', 'events.css', 'events.js', 'events-nav.css',
   'regulament.html', 'regulament.css', 'access.html', 'access.css', 'access.js',
+  'farm.html', 'farm.css', 'farm.js',
   'race-guide.css', 'race-guide.js', 'tier-guide.css', 'protected-guide.css',
   'auth-ui.js', 'auth-ui.css'
 ]);

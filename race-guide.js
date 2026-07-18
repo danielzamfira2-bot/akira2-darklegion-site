@@ -1,5 +1,13 @@
 const raceName = document.querySelector('.guide-sidebar h1')?.textContent.trim() || 'Personaj';
 const publicLevel = document.querySelector('#level-1');
+const guideHeaderNav = document.querySelector('.guide-header > nav');
+
+if (guideHeaderNav && !guideHeaderNav.querySelector('a[href="../farm.html"]')) {
+  const farmLink = document.createElement('a');
+  farmLink.href = '../farm.html';
+  farmLink.textContent = 'Strategie Farm';
+  guideHeaderNav.insertBefore(farmLink, guideHeaderNav.lastElementChild);
+}
 
 if (publicLevel) {
   const style = document.createElement('link');
