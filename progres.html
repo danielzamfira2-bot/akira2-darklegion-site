@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="progres.css">
   <link rel="stylesheet" href="progres-inventory.css">
+  <link rel="stylesheet" href="progres-ruby.css">
 </head>
 <body>
   <header class="progress-header">
@@ -114,15 +115,25 @@
     <dialog id="item-picker" class="item-picker">
       <form method="dialog" id="item-picker-form">
         <header><div><p class="eyebrow">EDITOR SLOT</p><h2 id="picker-title">Selectează itemul</h2></div><button class="dialog-close" value="cancel" aria-label="Închide">×</button></header>
-        <div id="catalog-items" class="catalog-items"><span>CATALOG ÎN PREGĂTIRE</span><p>Aici vor apărea itemele și pozele pe care mi le vei furniza.</p></div>
-        <label><span>Numele itemului</span><input id="picker-name" maxlength="120" placeholder="Ex: Sabie Zodiac +9"></label>
-        <label><span>Bonusuri și detalii</span><textarea id="picker-bonuses" maxlength="500" rows="5" placeholder="Ex: 45% medie, 10 Pătrundere, 7% Mob"></textarea></label>
+        <div id="generic-editor" class="generic-editor">
+          <div class="catalog-items"><span>CATALOG ÎN PREGĂTIRE</span><p>Aici vor apărea itemele și pozele pe care mi le vei furniza.</p></div>
+          <label><span>Numele itemului</span><input id="picker-name" maxlength="120" placeholder="Ex: Sabie Zodiac +9"></label>
+          <label><span>Bonusuri și detalii</span><textarea id="picker-bonuses" maxlength="500" rows="5" placeholder="Ex: 45% medie, 10 Pătrundere, 7% Mob"></textarea></label>
+        </div>
+        <div id="ruby-editor" class="ruby-editor" hidden>
+          <div class="ruby-selectors"><label><span>Grad de claritate</span><select id="ruby-clarity"></select></label><label><span>Nivelul pietrei</span><select id="ruby-level"></select></label></div>
+          <section class="ruby-base"><header><span>BONUSURI DE BAZĂ</span><small>Se aplică automat</small></header><div id="ruby-base-values"></div></section>
+          <section class="ruby-possible"><header><span>BONUSURI POSIBILE</span><small>Selectează maximum 3</small></header><div id="ruby-possible-values"></div><p id="ruby-selection-status">0 din 3 bonusuri selectate</p></section>
+          <a class="alchemy-source" href="https://ro-wiki.metin2.gameforge.com/index.php/Rubin_Dragon_Mitic_%28Opac%29" target="_blank" rel="noreferrer">Valori: Metin2 Wiki oficial →</a>
+        </div>
+        <div id="alchemy-pending" class="alchemy-pending" hidden><span>CONFIGURARE ÎN PREGĂTIRE</span><p>Bonusurile prestabilite pentru această piatră vor fi adăugate în etapa următoare.</p></div>
         <footer><button type="button" id="clear-slot" class="clear-slot">Golește slotul</button><div><button value="cancel" class="cancel-button">Renunță</button><button type="button" id="apply-slot" class="apply-slot">Aplică</button></div></footer>
       </form>
     </dialog>
   </main>
 
   <footer><span>AKIRA2 DARKLEGION</span><p>Fiecare membru este responsabil să își păstreze profilul actualizat.</p></footer>
+  <script src="alchemy-data.js"></script>
   <script src="progres.js"></script>
   <script src="/auth-ui.js"></script>
 </body>

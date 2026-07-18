@@ -135,7 +135,12 @@ function normalizeItemSlot(value) {
     itemId: cleanText(value?.itemId, 80),
     name: cleanText(value?.name, 120),
     bonuses: cleanText(value?.bonuses, 500),
-    image: cleanText(value?.image, 220)
+    image: cleanText(value?.image, 220),
+    clarity: cleanText(value?.clarity, 30),
+    level: cleanNumber(value?.level, 0, 6),
+    selectedBonuses: Array.isArray(value?.selectedBonuses)
+      ? value.selectedBonuses.slice(0, 3).map(bonus => cleanText(bonus, 50)).filter(Boolean)
+      : []
   };
 }
 
@@ -382,7 +387,7 @@ const publicFiles = new Set([
   'events.html', 'events.css', 'events.js', 'events-nav.css',
   'regulament.html', 'regulament.css', 'access.html', 'access.css', 'access.js',
   'farm.html', 'farm.css', 'farm.js',
-  'progres.html', 'progres.css', 'progres-inventory.css', 'progres.js',
+  'progres.html', 'progres.css', 'progres-inventory.css', 'progres-ruby.css', 'alchemy-data.js', 'progres.js',
   'race-guide.css', 'race-guide.js', 'tier-guide.css', 'protected-guide.css',
   'auth-ui.js', 'auth-ui.css'
 ]);
