@@ -18,15 +18,15 @@ const pickerTitle = document.querySelector('#picker-title');
 const pickerName = document.querySelector('#picker-name');
 const pickerBonuses = document.querySelector('#picker-bonuses');
 const genericEditor = document.querySelector('#generic-editor');
-const rubyEditor = document.querySelector('#ruby-editor');
-const alchemyPending = document.querySelector('#alchemy-pending');
-const rubyClarity = document.querySelector('#ruby-clarity');
-const rubyLevel = document.querySelector('#ruby-level');
-const rubyBaseValues = document.querySelector('#ruby-base-values');
-const rubyPossibleValues = document.querySelector('#ruby-possible-values');
-const rubySelectionStatus = document.querySelector('#ruby-selection-status');
+const alchemyEditor = document.querySelector('#alchemy-editor');
+const alchemyClarity = document.querySelector('#alchemy-clarity');
+const alchemyLevel = document.querySelector('#alchemy-level');
+const alchemyBaseValues = document.querySelector('#alchemy-base-values');
+const alchemyPossibleValues = document.querySelector('#alchemy-possible-values');
+const alchemySelectionStatus = document.querySelector('#alchemy-selection-status');
+const alchemySource = document.querySelector('#alchemy-source');
 const applySlotButton = document.querySelector('#apply-slot');
-const rubyCatalog = window.ALCHEMY_CATALOG.ruby;
+const alchemyCatalog = window.ALCHEMY_CATALOG;
 
 let activeSlot = null;
 let equipmentState = Object.fromEntries(equipmentFields.map(field => [field, emptySlot()]));
@@ -113,64 +113,69 @@ function readForm() {
   };
 }
 
-function formatRubyValue(definition, values) {
+function formatAlchemyValue(definition, values) {
   return `${definition.prefix || ''}${values[definition.valueKey]}${definition.suffix || ''}`;
 }
 
-function selectedRubyBonusIds() {
-  return [...rubyPossibleValues.querySelectorAll('input:checked')].map(input => input.value);
+function selectedAlchemyBonusIds() {
+  return [...alchemyPossibleValues.querySelectorAll('input:checked')].map(input => input.value);
 }
 
-function updateRubySelectionState() {
-  const selected = selectedRubyBonusIds();
-  rubySelectionStatus.textContent = `${selected.length} din 3 bonusuri selectate`;
-  rubyPossibleValues.querySelectorAll('input:not(:checked)').forEach(input => {
+function updateAlchemySelectionState() {
+  const selected = selectedAlchemyBonusIds();
+  alchemySelectionStatus.textContent = `${selected.length} din 3 bonusuri selectate`;
+  alchemyPossibleValues.querySelectorAll('input:not(:checked)').forEach(input => {
     input.disabled = selected.length >= 3;
   });
 }
 
-function renderRubyValues(selected = selectedRubyBonusIds()) {
-  const clarity = rubyCatalog.clarities[rubyClarity.value];
-  const values = clarity.levels[Number(rubyLevel.value)] || clarity.levels[0];
-  rubyBaseValues.innerHTML = rubyCatalog.baseBonuses.map(label => `<article><span>${escapeHtml(label)}</span><b>${label === 'Putere' ? '+' : ''}${values.base}${label === 'Putere' ? '' : '%'}</b></article>`).join('');
-  rubyPossibleValues.innerHTML = rubyCatalog.possibleBonuses.map(definition => `
+function renderAlchemyValues(selected = selectedAlchemyBonusIds()) {
+  const stone = alchemyCatalog[activeSlot.field];
+  const clarity = stone.clarities[alchemyClarity.value];
+  const values = clarity.levels[Number(alchemyLevel.value)] || clarity.levels[0];
+  alchemyBaseValues.innerHTML = stone.baseBonuses.map(definition => `<article><span>${escapeHtml(definition.label)}</span><b>${formatAlchemyValue(definition, values)}</b></article>`).join('');
+  alchemyPossibleValues.innerHTML = stone.possibleBonuses.map(definition => `
     <label class="ruby-bonus-option">
       <input type="checkbox" value="${definition.id}" ${selected.includes(definition.id) ? 'checked' : ''}>
-      <span><strong>${escapeHtml(definition.label)}</strong><b>${formatRubyValue(definition, values)}</b></span>
+      <span><strong>${escapeHtml(definition.label)}</strong><b>${formatAlchemyValue(definition, values)}</b></span>
     </label>`).join('');
-  rubyPossibleValues.querySelectorAll('input').forEach(input => input.addEventListener('change', updateRubySelectionState));
-  updateRubySelectionState();
+  alchemyPossibleValues.querySelectorAll('input').forEach(input => input.addEventListener('change', updateAlchemySelectionState));
+  updateAlchemySelectionState();
 }
 
-function updateRubyLevels(preferredLevel = Number(rubyLevel.value) || 0, selected = selectedRubyBonusIds()) {
-  const levels = rubyCatalog.clarities[rubyClarity.value].levels;
-  rubyLevel.innerHTML = levels.map((_, index) => `<option value="${index}">+${index}</option>`).join('');
-  rubyLevel.value = String(Math.min(preferredLevel, levels.length - 1));
-  renderRubyValues(selected);
+function updateAlchemyLevels(preferredLevel = Number(alchemyLevel.value) || 0, selected = selectedAlchemyBonusIds()) {
+  const stone = alchemyCatalog[activeSlot.field];
+  const levels = stone.clarities[alchemyClarity.value].levels;
+  alchemyLevel.innerHTML = levels.map((_, index) => `<option value="${index}">+${index}</option>`).join('');
+  alchemyLevel.value = String(Math.min(preferredLevel, levels.length - 1));
+  renderAlchemyValues(selected);
 }
 
-function configureRubyEditor(state) {
-  const clarityKey = rubyCatalog.clarities[state.clarity] ? state.clarity : 'opac';
-  rubyClarity.innerHTML = Object.entries(rubyCatalog.clarities).map(([key, clarity]) => `<option value="${key}">${clarity.label}</option>`).join('');
-  rubyClarity.value = clarityKey;
-  updateRubyLevels(state.level, state.selectedBonuses || []);
+function configureAlchemyEditor(state) {
+  const stone = alchemyCatalog[activeSlot.field];
+  const clarityKey = stone.clarities[state.clarity] ? state.clarity : 'opac';
+  alchemyClarity.innerHTML = Object.entries(stone.clarities).map(([key, clarity]) => `<option value="${key}">${clarity.label}</option>`).join('');
+  alchemyClarity.value = clarityKey;
+  alchemySource.href = stone.source;
+  updateAlchemyLevels(state.level, state.selectedBonuses || []);
 }
 
-function rubySlotFromSelection() {
-  const clarity = rubyCatalog.clarities[rubyClarity.value];
-  const level = Number(rubyLevel.value);
+function alchemySlotFromSelection() {
+  const stone = alchemyCatalog[activeSlot.field];
+  const clarity = stone.clarities[alchemyClarity.value];
+  const level = Number(alchemyLevel.value);
   const values = clarity.levels[level];
-  const selectedBonuses = selectedRubyBonusIds();
-  const baseText = [`Putere +${values.base}`, `Rezistență la foc ${values.base}%`, `Puterea focului ${values.base}%`];
-  const possibleText = rubyCatalog.possibleBonuses
+  const selectedBonuses = selectedAlchemyBonusIds();
+  const baseText = stone.baseBonuses.map(definition => `${definition.label} ${formatAlchemyValue(definition, values)}`);
+  const possibleText = stone.possibleBonuses
     .filter(definition => selectedBonuses.includes(definition.id))
-    .map(definition => `${definition.label} ${formatRubyValue(definition, values)}`);
+    .map(definition => `${definition.label} ${formatAlchemyValue(definition, values)}`);
   return {
-    ...alchemyState.ruby,
-    itemId: rubyCatalog.itemId,
-    name: `${rubyCatalog.name} (${clarity.label}) +${level}`,
+    ...alchemyState[activeSlot.field],
+    itemId: stone.itemId,
+    name: `${stone.name} (${clarity.label}) +${level}`,
     bonuses: [...baseText, ...possibleText].join(' · '),
-    clarity: rubyClarity.value,
+    clarity: alchemyClarity.value,
     level,
     selectedBonuses
   };
@@ -182,20 +187,16 @@ function openPicker(button) {
   const labels = activeSlot.kind === 'alchemy' ? alchemyLabels : equipmentLabels;
   pickerTitle.textContent = labels[activeSlot.field];
   genericEditor.hidden = true;
-  rubyEditor.hidden = true;
-  alchemyPending.hidden = true;
+  alchemyEditor.hidden = true;
   applySlotButton.disabled = false;
 
   if (activeSlot.kind === 'equipment') {
     genericEditor.hidden = false;
     pickerName.value = state.name;
     pickerBonuses.value = state.bonuses;
-  } else if (activeSlot.field === 'ruby') {
-    rubyEditor.hidden = false;
-    configureRubyEditor(state);
   } else {
-    alchemyPending.hidden = false;
-    applySlotButton.disabled = true;
+    alchemyEditor.hidden = false;
+    configureAlchemyEditor(state);
   }
   picker.showModal();
 }
@@ -207,15 +208,15 @@ document.querySelectorAll('.inventory-slot, .alchemy-slot').forEach(button => {
 applySlotButton?.addEventListener('click', () => {
   if (!activeSlot) return;
   const collection = activeSlot.kind === 'alchemy' ? alchemyState : equipmentState;
-  collection[activeSlot.field] = activeSlot.kind === 'alchemy' && activeSlot.field === 'ruby'
-    ? rubySlotFromSelection()
+  collection[activeSlot.field] = activeSlot.kind === 'alchemy'
+    ? alchemySlotFromSelection()
     : { ...collection[activeSlot.field], name: pickerName.value.trim(), bonuses: pickerBonuses.value.trim() };
   renderSlot(activeSlot.kind, activeSlot.field);
   picker.close();
 });
 
-rubyClarity?.addEventListener('change', () => updateRubyLevels(0, selectedRubyBonusIds()));
-rubyLevel?.addEventListener('change', () => renderRubyValues(selectedRubyBonusIds()));
+alchemyClarity?.addEventListener('change', () => updateAlchemyLevels(0, selectedAlchemyBonusIds()));
+alchemyLevel?.addEventListener('change', () => renderAlchemyValues(selectedAlchemyBonusIds()));
 
 document.querySelector('#clear-slot')?.addEventListener('click', () => {
   if (!activeSlot) return;
