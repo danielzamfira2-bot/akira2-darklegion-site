@@ -9,6 +9,13 @@ if (guideHeaderNav && !guideHeaderNav.querySelector('a[href="../farm.html"]')) {
   guideHeaderNav.insertBefore(farmLink, guideHeaderNav.lastElementChild);
 }
 
+if (guideHeaderNav && !guideHeaderNav.querySelector('a[href="../progres.html"]')) {
+  const progressLink = document.createElement('a');
+  progressLink.href = '../progres.html';
+  progressLink.textContent = 'Progres';
+  guideHeaderNav.insertBefore(progressLink, guideHeaderNav.lastElementChild);
+}
+
 if (publicLevel) {
   const style = document.createElement('link');
   style.rel = 'stylesheet';

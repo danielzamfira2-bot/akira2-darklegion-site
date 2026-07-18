@@ -25,6 +25,7 @@ const requiredInProduction = [
   'DISCORD_GUILD_ID',
   'DISCORD_TIER_2_ROLE_ID',
   'DISCORD_TIER_3_ROLE_ID',
+  'DISCORD_PROGRESS_ADMIN_ROLE_IDS',
   'DISCORD_BOT_TOKEN'
 ];
 
@@ -53,13 +54,14 @@ app.use(helmet({
 app.use(express.json());
 
 let sessionStore;
+let databasePool;
 if (process.env.DATABASE_URL) {
-  const pool = new pg.Pool({
+  databasePool = new pg.Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: IS_PRODUCTION ? { rejectUnauthorized: false } : undefined
   });
   const PgStore = connectPgSimple(session);
-  sessionStore = new PgStore({ pool, tableName: 'user_sessions', createTableIfMissing: true });
+  sessionStore = new PgStore({ pool: databasePool, tableName: 'user_sessions', createTableIfMissing: true });
 } else {
   console.warn('DATABASE_URL nu este setat. Sesiunile locale se pierd la restart.');
 }
@@ -88,6 +90,55 @@ function accessTier(roles = []) {
   if (process.env.DISCORD_TIER_3_ROLE_ID && roles.includes(process.env.DISCORD_TIER_3_ROLE_ID)) return 3;
   if (process.env.DISCORD_TIER_2_ROLE_ID && roles.includes(process.env.DISCORD_TIER_2_ROLE_ID)) return 2;
   return 1;
+}
+
+function canAdminProgress(roles = []) {
+  const allowedRoles = (process.env.DISCORD_PROGRESS_ADMIN_ROLE_IDS || '')
+    .split(',')
+    .map(role => role.trim())
+    .filter(Boolean);
+  return allowedRoles.some(role => roles.includes(role));
+}
+
+function requireLogin(req, res, next) {
+  if (!req.session.user) return res.status(401).json({ error: 'Autentificare necesară.' });
+  next();
+}
+
+function requireDatabase(_req, res, next) {
+  if (!databasePool) return res.status(503).json({ error: 'Baza de date nu este configurată.' });
+  next();
+}
+
+function cleanText(value, maxLength = 180) {
+  return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
+}
+
+function cleanNumber(value, min, max) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) return min;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+const EQUIPMENT_FIELDS = [
+  'weapon', 'armor', 'helmet', 'shield', 'bracelet', 'earrings',
+  'necklace', 'shoes', 'talisman', 'glove', 'sash', 'pet', 'alchemy'
+];
+const PROGRESS_FIELDS = ['horse', 'biologist', 'mainFarm', 'accounts'];
+
+function normalizePlayerProfile(body = {}) {
+  const equipment = Object.fromEntries(EQUIPMENT_FIELDS.map(field => [field, cleanText(body.equipment?.[field])]));
+  const progress = Object.fromEntries(PROGRESS_FIELDS.map(field => [field, cleanText(body.progress?.[field])]));
+  return {
+    characterName: cleanText(body.characterName, 40),
+    race: RACES.has(String(body.race).toLowerCase()) ? String(body.race).toLowerCase() : 'warrior',
+    level: cleanNumber(body.level, 1, 120),
+    championLevel: cleanNumber(body.championLevel, 0, 30),
+    tier: cleanNumber(body.tier, 1, 3),
+    equipment,
+    progress,
+    notes: cleanText(body.notes, 1200)
+  };
 }
 
 async function discordRequest(endpoint, token, type = 'Bearer') {
@@ -207,9 +258,14 @@ app.post('/auth/logout', (req, res) => {
 
 app.get('/api/me', async (req, res) => {
   res.set('Cache-Control', 'no-store');
-  if (!req.session.user) return res.json({ authenticated: false, tier: 1 });
+  if (!req.session.user) return res.json({ authenticated: false, tier: 1, canAdminProgress: false });
   await refreshRoles(req);
-  res.json({ authenticated: true, user: req.session.user, tier: req.session.tier || 1 });
+  res.json({
+    authenticated: true,
+    user: req.session.user,
+    tier: req.session.tier || 1,
+    canAdminProgress: canAdminProgress(req.session.roles || [])
+  });
 });
 
 app.get('/health', (_req, res) => {
@@ -239,11 +295,79 @@ app.get('/api/farm/tier/:tier', async (req, res) => {
   res.json({ tier, strategy: protectedFarmStrategies[tier] });
 });
 
+app.get('/api/progress/me', requireLogin, requireDatabase, async (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  try {
+    const result = await databasePool.query(
+      `SELECT profile, updated_at
+       FROM player_progress
+       WHERE discord_user_id = $1`,
+      [req.session.user.id]
+    );
+    res.json({ user: req.session.user, progress: result.rows[0] || null });
+  } catch (error) {
+    console.error('Citirea progresului a eșuat:', error.message);
+    res.status(500).json({ error: 'Progresul nu a putut fi citit.' });
+  }
+});
+
+app.put('/api/progress/me', requireLogin, requireDatabase, async (req, res) => {
+  const profile = normalizePlayerProfile(req.body);
+  if (profile.characterName.length < 2) {
+    return res.status(400).json({ error: 'Numele personajului trebuie să aibă minimum 2 caractere.' });
+  }
+
+  try {
+    const result = await databasePool.query(
+      `INSERT INTO player_progress
+        (discord_user_id, discord_username, discord_avatar, profile, updated_at)
+       VALUES ($1, $2, $3, $4::jsonb, NOW())
+       ON CONFLICT (discord_user_id) DO UPDATE SET
+         discord_username = EXCLUDED.discord_username,
+         discord_avatar = EXCLUDED.discord_avatar,
+         profile = EXCLUDED.profile,
+         updated_at = NOW()
+       RETURNING profile, updated_at`,
+      [
+        req.session.user.id,
+        req.session.user.username,
+        req.session.user.avatar,
+        JSON.stringify(profile)
+      ]
+    );
+    res.json({ saved: true, progress: result.rows[0] });
+  } catch (error) {
+    console.error('Salvarea progresului a eșuat:', error.message);
+    res.status(500).json({ error: 'Progresul nu a putut fi salvat.' });
+  }
+});
+
+app.get('/api/progress/all', requireLogin, requireDatabase, async (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  await refreshRoles(req);
+  if (!canAdminProgress(req.session.roles || [])) {
+    return res.status(403).json({ error: 'Rolul Admin este necesar.' });
+  }
+
+  try {
+    const result = await databasePool.query(
+      `SELECT discord_user_id, discord_username, discord_avatar, profile, updated_at
+       FROM player_progress
+       ORDER BY updated_at DESC`
+    );
+    res.json({ players: result.rows });
+  } catch (error) {
+    console.error('Lista progresului a eșuat:', error.message);
+    res.status(500).json({ error: 'Lista jucătorilor nu a putut fi încărcată.' });
+  }
+});
+
 const publicFiles = new Set([
   'index.html', 'styles.css', 'script.js', 'guide-basics.css', 'guide.js',
   'events.html', 'events.css', 'events.js', 'events-nav.css',
   'regulament.html', 'regulament.css', 'access.html', 'access.css', 'access.js',
   'farm.html', 'farm.css', 'farm.js',
+  'progres.html', 'progres.css', 'progres.js',
   'race-guide.css', 'race-guide.js', 'tier-guide.css', 'protected-guide.css',
   'auth-ui.js', 'auth-ui.css'
 ]);
@@ -257,4 +381,22 @@ app.get('/:file', (req, res, next) => {
 });
 app.use((_req, res) => res.status(404).send('Pagina nu a fost găsită.'));
 
-app.listen(PORT, () => console.log(`Akira2 DarkLegion rulează pe portul ${PORT}`));
+async function startServer() {
+  if (databasePool) {
+    await databasePool.query(`
+      CREATE TABLE IF NOT EXISTS player_progress (
+        discord_user_id TEXT PRIMARY KEY,
+        discord_username TEXT NOT NULL,
+        discord_avatar TEXT,
+        profile JSONB NOT NULL DEFAULT '{}'::jsonb,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+  }
+  app.listen(PORT, () => console.log(`Akira2 DarkLegion rulează pe portul ${PORT}`));
+}
+
+startServer().catch(error => {
+  console.error('Serverul nu a putut porni:', error);
+  process.exit(1);
+});

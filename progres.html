@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Profilul de echipament și progres Akira2 DarkLegion.">
+  <title>Progresul meu · Akira2 DarkLegion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="progres.css">
+</head>
+<body>
+  <header class="progress-header">
+    <a class="brand" href="index.html">AKIRA<span>2</span><small>DARKLEGION</small></a>
+    <button class="menu-button" aria-expanded="false" aria-label="Deschide meniul">☰</button>
+    <nav class="progress-nav" aria-label="Navigare principală">
+      <a href="index.html">Acasă</a>
+      <a href="events.html">Evenimente</a>
+      <a href="index.html#rase">Ghiduri rase</a>
+      <a href="farm.html">Strategie Farm</a>
+      <a class="active" href="progres.html">Progres</a>
+      <a href="regulament.html">Regulament</a>
+    </nav>
+  </header>
+
+  <main class="progress-page">
+    <section class="progress-hero">
+      <div><p class="eyebrow">PROFIL PERSONAL · DARKLEGION</p><h1>Echipament și <em>progres</em></h1><p>Ține evidența personajului într-un singur loc și actualizează profilul pe măsură ce avansezi.</p></div>
+      <div id="profile-identity" class="profile-identity"><span class="loading-ring"></span><p>Verificăm contul Discord…</p></div>
+    </section>
+
+    <section id="login-required" class="login-required" hidden>
+      <span>◇</span><h2>Autentificare necesară</h2><p>Trebuie să fii membru pe serverul DarkLegion pentru a salva un profil.</p><a href="/auth/discord?return=%2Fprogres.html">Login cu Discord →</a>
+    </section>
+
+    <form id="progress-form" class="progress-form" hidden>
+      <section class="form-section">
+        <header><span>01</span><div><p class="eyebrow">PERSONAJ</p><h2>Date generale</h2></div></header>
+        <div class="form-grid identity-grid">
+          <label><span>Numele personajului</span><input name="characterName" maxlength="40" required placeholder="Ex: DarkWarrior"></label>
+          <label><span>Rasa</span><select name="race"><option value="warrior">Warrior</option><option value="ninja">Ninja</option><option value="sura">Sura</option><option value="shaman">Șaman</option><option value="lycan">Lycan</option></select></label>
+          <label><span>Nivel</span><input name="level" type="number" min="1" max="120" value="1"></label>
+          <label><span>Nivel Campion</span><input name="championLevel" type="number" min="0" max="30" value="0"></label>
+          <label><span>Tier curent</span><select name="tier"><option value="1">Tier I</option><option value="2">Tier II</option><option value="3">Tier III</option></select></label>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <header><span>02</span><div><p class="eyebrow">ECHIPAMENT</p><h2>Setul folosit</h2></div></header>
+        <p class="section-help">Scrie itemul, nivelul și bonusurile importante. Poți reveni oricând să le actualizezi.</p>
+        <div class="form-grid equipment-grid">
+          <label><span>Armă</span><input name="weapon" placeholder="Zodiac +9 · 45 medie · 10 Pătrundere"></label>
+          <label><span>Armură</span><input name="armor" placeholder="Armură Mob +… · bonusuri"></label>
+          <label><span>Coif</span><input name="helmet" placeholder="Coif +… · bonusuri"></label>
+          <label><span>Scut</span><input name="shield" placeholder="Scut Titan +9 · bonusuri"></label>
+          <label><span>Brățară</span><input name="bracelet" placeholder="Brățară · bonusuri"></label>
+          <label><span>Cercei</span><input name="earrings" placeholder="Cercei · bonusuri"></label>
+          <label><span>Colier</span><input name="necklace" placeholder="Colier · bonusuri"></label>
+          <label><span>Papuci</span><input name="shoes" placeholder="Papuci · bonusuri"></label>
+          <label><span>Talisman</span><input name="talisman" placeholder="Element · procent · apărări"></label>
+          <label><span>Mănușă Yohara</span><input name="glove" placeholder="Nivel · pietre · bonusuri"></label>
+          <label><span>Eșarfă</span><input name="sash" placeholder="25% · Arc Zodiac · medie"></label>
+          <label><span>Pet</span><input name="pet" placeholder="Tip · nivel · skilluri"></label>
+          <label class="wide"><span>Alchimie</span><input name="alchemy" placeholder="Claritate și bonusurile pietrelor principale"></label>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <header><span>03</span><div><p class="eyebrow">PROGRES</p><h2>Sisteme și obiective</h2></div></header>
+        <div class="form-grid progress-grid">
+          <label><span>Cal</span><input name="horse" placeholder="Ex: Nivel 21"></label>
+          <label><span>Biolog</span><input name="biologist" placeholder="Ex: Terminat nivelul 80"></label>
+          <label><span>Farm principal</span><input name="mainFarm" placeholder="Ex: Harta Fermecată / Hydra"></label>
+          <label><span>Conturi secundare</span><input name="accounts" placeholder="Ex: 4 conturi Campion"></label>
+          <label class="wide"><span>Observații și următorul obiectiv</span><textarea name="notes" maxlength="1200" rows="5" placeholder="Ce îți lipsește și ce vrei să îmbunătățești în continuare?"></textarea></label>
+        </div>
+      </section>
+
+      <div class="save-bar"><p id="save-status" role="status"></p><button type="submit">Salvează progresul</button></div>
+    </form>
+
+    <section id="admin-panel" class="admin-panel" hidden>
+      <header><div><p class="eyebrow">PANOU ADMIN</p><h2>Progresul tuturor membrilor</h2><p>Vizibil numai utilizatorilor care au rolul Discord Admin.</p></div><button id="refresh-admin" type="button">Reîncarcă</button></header>
+      <div id="admin-summary" class="admin-summary"></div>
+      <div id="players-list" class="players-list"><p class="empty-state">Se încarcă profilurile…</p></div>
+    </section>
+  </main>
+
+  <footer><span>AKIRA2 DARKLEGION</span><p>Fiecare membru este responsabil să își păstreze profilul actualizat.</p></footer>
+  <script src="progres.js"></script>
+  <script src="/auth-ui.js"></script>
+</body>
+</html>

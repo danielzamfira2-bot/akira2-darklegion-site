@@ -9,6 +9,13 @@ if (accessHeaderNav && !accessHeaderNav.querySelector('a[href="farm.html"]')) {
   farmLink.textContent = 'Strategie Farm';
   accessHeaderNav.insertBefore(farmLink, accessHeaderNav.lastElementChild);
 }
+
+if (accessHeaderNav && !accessHeaderNav.querySelector('a[href="progres.html"]')) {
+  const progressLink = document.createElement('a');
+  progressLink.href = 'progres.html';
+  progressLink.textContent = 'Progres';
+  accessHeaderNav.insertBefore(progressLink, accessHeaderNav.lastElementChild);
+}
 const errorMessages = {
   invalid_state: 'Sesiunea de autentificare a expirat. Încearcă din nou.',
   not_in_guild: 'Contul Discord nu este membru al serverului configurat.',
