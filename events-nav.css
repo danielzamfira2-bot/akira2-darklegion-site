@@ -1,0 +1,1 @@
+.events-nav{display:flex;gap:28px;margin:auto}.events-nav a{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;text-decoration:none;font-weight:700}.events-nav a:hover,.events-nav a.active{color:var(--gold)}@media(max-width:900px){.events-nav{display:none}}

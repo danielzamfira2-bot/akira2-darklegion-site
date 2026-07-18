@@ -1,0 +1,66 @@
+﻿<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Calendarul săptămânal de evenimente Akira2, afișat în ora României.">
+  <title>Akira2 DarkLegion — Calendar evenimente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="events.css">
+  <link rel="stylesheet" href="events-nav.css">
+</head>
+<body>
+  <header>
+    <a class="brand" href="index.html">AKIRA<span>2</span><small>DARKLEGION</small></a>
+    <nav class="events-nav"><a href="index.html">Acasă</a><a class="active" href="events.html">Evenimente</a><a href="index.html#rase">Ghiduri rase</a><a href="regulament.html">Regulament</a></nav>
+    <div class="clock"><span>ORA ROMÂNIEI</span><strong id="ro-clock">--:--:--</strong></div>
+  </header>
+
+  <main>
+    <section class="intro">
+      <p class="eyebrow">CALENDAR SĂPTĂMÂNAL</p>
+      <h1>Nu rata următorul<br><em>eveniment.</em></h1>
+      <p>Programul Akira2, transformat automat din ora serverului în ora României.</p>
+    </section>
+
+    <section class="today-panel" aria-labelledby="today-title">
+      <div class="today-copy">
+        <p class="label">ASTĂZI · <span id="today-date">—</span></p>
+        <h2 id="today-title">Evenimentele de azi</h2>
+        <p>Orele afișate mai jos sunt în fusul orar selectat.</p>
+      </div>
+      <div class="today-events" id="today-events"></div>
+      <aside class="next-event" id="next-event">
+        <p class="label">URMĂTORUL EVENIMENT</p>
+        <strong>Se calculează…</strong>
+      </aside>
+    </section>
+
+    <section class="calendar-section">
+      <div class="section-head">
+        <div><p class="eyebrow">PROGRAM COMPLET</p><h2>Calendar evenimente</h2></div>
+        <div class="timezone-switch" role="group" aria-label="Fus orar">
+          <button data-zone="server">Server <small>CET/CEST</small></button>
+          <button class="active" data-zone="romania">România <small>+1 oră</small></button>
+        </div>
+      </div>
+
+      <div class="timezone-note"><span>i</span> Evenimentele sunt publicate în ora Europei Centrale. Pentru România adăugăm automat o oră.</div>
+
+      <div class="calendar-wrap">
+        <table>
+          <thead><tr><th>ZIUA</th><th><span class="slot-time">14:00–17:00</span><small>Eveniment după-amiază</small></th><th><span class="slot-time">19:00–22:00</span><small>Eveniment de seară</small></th><th><span class="slot-time">00:00–03:00</span><small>Eveniment de noapte</small></th><th>EVENIMENT SPECIAL</th><th>EXP</th><th>DROP</th></tr></thead>
+          <tbody id="calendar-body"></tbody>
+        </table>
+      </div>
+      <p class="swipe-hint">← Glisează pentru a vedea tot calendarul →</p>
+    </section>
+  </main>
+
+  <footer><span>AKIRA2 DARKLEGION</span><p>Calendar comunitar neoficial · Verifică anunțurile serverului pentru eventuale modificări.</p></footer>
+  <script src="events.js"></script>
+  <script src="/auth-ui.js"></script>
+</body>
+</html>
