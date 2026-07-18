@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="progres.css">
+  <link rel="stylesheet" href="progres-inventory.css">
 </head>
 <body>
   <header class="progress-header">
@@ -48,26 +49,50 @@
 
       <section class="form-section">
         <header><span>02</span><div><p class="eyebrow">ECHIPAMENT</p><h2>Setul folosit</h2></div></header>
-        <p class="section-help">Scrie itemul, nivelul și bonusurile importante. Poți reveni oricând să le actualizezi.</p>
-        <div class="form-grid equipment-grid">
-          <label><span>Armă</span><input name="weapon" placeholder="Zodiac +9 · 45 medie · 10 Pătrundere"></label>
-          <label><span>Armură</span><input name="armor" placeholder="Armură Mob +… · bonusuri"></label>
-          <label><span>Coif</span><input name="helmet" placeholder="Coif +… · bonusuri"></label>
-          <label><span>Scut</span><input name="shield" placeholder="Scut Titan +9 · bonusuri"></label>
-          <label><span>Brățară</span><input name="bracelet" placeholder="Brățară · bonusuri"></label>
-          <label><span>Cercei</span><input name="earrings" placeholder="Cercei · bonusuri"></label>
-          <label><span>Colier</span><input name="necklace" placeholder="Colier · bonusuri"></label>
-          <label><span>Papuci</span><input name="shoes" placeholder="Papuci · bonusuri"></label>
-          <label><span>Talisman</span><input name="talisman" placeholder="Element · procent · apărări"></label>
-          <label><span>Mănușă Yohara</span><input name="glove" placeholder="Nivel · pietre · bonusuri"></label>
-          <label><span>Eșarfă</span><input name="sash" placeholder="25% · Arc Zodiac · medie"></label>
-          <label><span>Pet</span><input name="pet" placeholder="Tip · nivel · skilluri"></label>
-          <label class="wide"><span>Alchimie</span><input name="alchemy" placeholder="Claritate și bonusurile pietrelor principale"></label>
+        <p class="section-help">Apasă pe un slot pentru a selecta itemul și bonusurile. Pozele vor apărea automat după ce adăugăm catalogul de iteme.</p>
+        <div class="equipment-workspace">
+          <div class="equipment-window">
+            <div class="window-title"><span>Fereastră Echipament</span><i>×</i></div>
+            <div class="equipment-board">
+              <button type="button" class="inventory-slot slot-weapon" data-kind="equipment" data-slot="weapon"><span class="slot-icon">⚔</span><small>Armă</small><b>Slot liber</b></button>
+              <button type="button" class="inventory-slot slot-helmet" data-kind="equipment" data-slot="helmet"><span class="slot-icon">⌃</span><small>Coif</small><b>Slot liber</b></button>
+              <button type="button" class="inventory-slot slot-armor" data-kind="equipment" data-slot="armor"><span class="slot-icon">♜</span><small>Armură</small><b>Slot liber</b></button>
+              <button type="button" class="inventory-slot slot-shield" data-kind="equipment" data-slot="shield"><span class="slot-icon">◈</span><small>Scut</small><b>Slot liber</b></button>
+              <button type="button" class="inventory-slot slot-bracelet" data-kind="equipment" data-slot="bracelet"><span class="slot-icon">◌</span><small>Brățară</small><b>Slot liber</b></button>
+              <button type="button" class="inventory-slot slot-earrings" data-kind="equipment" data-slot="earrings"><span class="slot-icon">♢</span><small>Cercei</small><b>Slot liber</b></button>
+              <button type="button" class="inventory-slot slot-necklace" data-kind="equipment" data-slot="necklace"><span class="slot-icon">⌁</span><small>Colier</small><b>Slot liber</b></button>
+              <button type="button" class="inventory-slot slot-shoes" data-kind="equipment" data-slot="shoes"><span class="slot-icon">⌄</span><small>Papuci</small><b>Slot liber</b></button>
+              <button type="button" class="inventory-slot slot-talisman" data-kind="equipment" data-slot="talisman"><span class="slot-icon">☯</span><small>Talisman</small><b>Slot liber</b></button>
+              <button type="button" class="inventory-slot slot-glove" data-kind="equipment" data-slot="glove"><span class="slot-icon">✦</span><small>Mănușă</small><b>Slot liber</b></button>
+              <button type="button" class="inventory-slot slot-sash" data-kind="equipment" data-slot="sash"><span class="slot-icon">◇</span><small>Eșarfă</small><b>Slot liber</b></button>
+              <button type="button" class="inventory-slot slot-pet" data-kind="equipment" data-slot="pet"><span class="slot-icon">♞</span><small>Pet</small><b>Slot liber</b></button>
+              <div class="character-silhouette"><span>AKIRA</span><b>2</b><small>DARKLEGION</small></div>
+            </div>
+          </div>
+          <aside class="equipment-help"><span>SELECTARE ITEM</span><h3>Construiește setul vizual</h3><p>Fiecare slot păstrează separat itemul și bonusurile. Când primim imaginile, iconul temporar va fi înlocuit cu poza itemului selectat.</p><ul><li>Click pe slot pentru editare</li><li>Bonusurile apar în panoul Admin</li><li>Sloturile completate sunt evidențiate</li></ul></aside>
         </div>
       </section>
 
       <section class="form-section">
-        <header><span>03</span><div><p class="eyebrow">PROGRES</p><h2>Sisteme și obiective</h2></div></header>
+        <header><span>03</span><div><p class="eyebrow">ALCHIMIE</p><h2>Roata Pietrelor Dragonului</h2></div></header>
+        <p class="section-help">Selectează fiecare piatră pentru a-i trece claritatea și bonusurile.</p>
+        <div class="alchemy-workspace">
+          <div class="alchemy-wheel">
+            <div class="alchemy-core"><span>ALCHIMIE</span><b>DRAGON</b></div>
+            <button type="button" class="alchemy-slot stone-diamond" data-kind="alchemy" data-slot="diamond"><i>◆</i><small>Diamant</small><b>Slot liber</b></button>
+            <button type="button" class="alchemy-slot stone-onyx" data-kind="alchemy" data-slot="onyx"><i>◆</i><small>Onyx</small><b>Slot liber</b></button>
+            <button type="button" class="alchemy-slot stone-garnet" data-kind="alchemy" data-slot="garnet"><i>◆</i><small>Granat</small><b>Slot liber</b></button>
+            <button type="button" class="alchemy-slot stone-amethyst" data-kind="alchemy" data-slot="amethyst"><i>◆</i><small>Ametist</small><b>Slot liber</b></button>
+            <button type="button" class="alchemy-slot stone-jade" data-kind="alchemy" data-slot="jade"><i>◆</i><small>Jad</small><b>Slot liber</b></button>
+            <button type="button" class="alchemy-slot stone-sapphire" data-kind="alchemy" data-slot="sapphire"><i>◆</i><small>Safir</small><b>Slot liber</b></button>
+            <button type="button" class="alchemy-slot stone-ruby" data-kind="alchemy" data-slot="ruby"><i>◆</i><small>Rubin</small><b>Slot liber</b></button>
+          </div>
+          <aside class="alchemy-legend"><article><i class="diamond"></i><span>Diamant</span></article><article><i class="ruby"></i><span>Rubin</span></article><article><i class="jade"></i><span>Jad</span></article><article><i class="sapphire"></i><span>Safir</span></article><article><i class="garnet"></i><span>Granat</span></article><article><i class="onyx"></i><span>Onyx</span></article><article><i class="amethyst"></i><span>Ametist</span></article></aside>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <header><span>04</span><div><p class="eyebrow">PROGRES</p><h2>Sisteme și obiective</h2></div></header>
         <div class="form-grid progress-grid">
           <label><span>Cal</span><input name="horse" placeholder="Ex: Nivel 21"></label>
           <label><span>Biolog</span><input name="biologist" placeholder="Ex: Terminat nivelul 80"></label>
@@ -85,6 +110,16 @@
       <div id="admin-summary" class="admin-summary"></div>
       <div id="players-list" class="players-list"><p class="empty-state">Se încarcă profilurile…</p></div>
     </section>
+
+    <dialog id="item-picker" class="item-picker">
+      <form method="dialog" id="item-picker-form">
+        <header><div><p class="eyebrow">EDITOR SLOT</p><h2 id="picker-title">Selectează itemul</h2></div><button class="dialog-close" value="cancel" aria-label="Închide">×</button></header>
+        <div id="catalog-items" class="catalog-items"><span>CATALOG ÎN PREGĂTIRE</span><p>Aici vor apărea itemele și pozele pe care mi le vei furniza.</p></div>
+        <label><span>Numele itemului</span><input id="picker-name" maxlength="120" placeholder="Ex: Sabie Zodiac +9"></label>
+        <label><span>Bonusuri și detalii</span><textarea id="picker-bonuses" maxlength="500" rows="5" placeholder="Ex: 45% medie, 10 Pătrundere, 7% Mob"></textarea></label>
+        <footer><button type="button" id="clear-slot" class="clear-slot">Golește slotul</button><div><button value="cancel" class="cancel-button">Renunță</button><button type="button" id="apply-slot" class="apply-slot">Aplică</button></div></footer>
+      </form>
+    </dialog>
   </main>
 
   <footer><span>AKIRA2 DARKLEGION</span><p>Fiecare membru este responsabil să își păstreze profilul actualizat.</p></footer>

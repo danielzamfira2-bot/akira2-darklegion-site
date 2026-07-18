@@ -1,6 +1,8 @@
-const equipmentFields = ['weapon', 'armor', 'helmet', 'shield', 'bracelet', 'earrings', 'necklace', 'shoes', 'talisman', 'glove', 'sash', 'pet', 'alchemy'];
+const equipmentFields = ['weapon', 'armor', 'helmet', 'shield', 'bracelet', 'earrings', 'necklace', 'shoes', 'talisman', 'glove', 'sash', 'pet'];
+const alchemyFields = ['diamond', 'ruby', 'jade', 'sapphire', 'garnet', 'onyx', 'amethyst'];
 const progressFields = ['horse', 'biologist', 'mainFarm', 'accounts'];
-const equipmentLabels = { weapon: 'Armă', armor: 'Armură', helmet: 'Coif', shield: 'Scut', bracelet: 'Brățară', earrings: 'Cercei', necklace: 'Colier', shoes: 'Papuci', talisman: 'Talisman', glove: 'Mănușă', sash: 'Eșarfă', pet: 'Pet', alchemy: 'Alchimie' };
+const equipmentLabels = { weapon: 'Armă', armor: 'Armură', helmet: 'Coif', shield: 'Scut', bracelet: 'Brățară', earrings: 'Cercei', necklace: 'Colier', shoes: 'Papuci', talisman: 'Talisman', glove: 'Mănușă', sash: 'Eșarfă', pet: 'Pet' };
+const alchemyLabels = { diamond: 'Diamant', ruby: 'Rubin', jade: 'Jad', sapphire: 'Safir', garnet: 'Granat', onyx: 'Onyx', amethyst: 'Ametist' };
 const progressLabels = { horse: 'Cal', biologist: 'Biolog', mainFarm: 'Farm principal', accounts: 'Conturi secundare' };
 const raceLabels = { warrior: 'Warrior', ninja: 'Ninja', sura: 'Sura', shaman: 'Șaman', lycan: 'Lycan' };
 
@@ -11,6 +13,14 @@ const saveStatus = document.querySelector('#save-status');
 const adminPanel = document.querySelector('#admin-panel');
 const playersList = document.querySelector('#players-list');
 const adminSummary = document.querySelector('#admin-summary');
+const picker = document.querySelector('#item-picker');
+const pickerTitle = document.querySelector('#picker-title');
+const pickerName = document.querySelector('#picker-name');
+const pickerBonuses = document.querySelector('#picker-bonuses');
+
+let activeSlot = null;
+let equipmentState = Object.fromEntries(equipmentFields.map(field => [field, emptySlot()]));
+let alchemyState = Object.fromEntries(alchemyFields.map(field => [field, emptySlot()]));
 
 document.querySelector('.menu-button')?.addEventListener('click', event => {
   const button = event.currentTarget;
@@ -19,8 +29,26 @@ document.querySelector('.menu-button')?.addEventListener('click', event => {
   document.querySelector('.progress-nav')?.classList.toggle('open', open);
 });
 
+function emptySlot() {
+  return { itemId: '', name: '', bonuses: '', image: '' };
+}
+
+function normalizeSlot(value) {
+  if (typeof value === 'string') return { ...emptySlot(), name: value };
+  return {
+    itemId: value?.itemId || '',
+    name: value?.name || '',
+    bonuses: value?.bonuses || '',
+    image: value?.image || ''
+  };
+}
+
 function escapeHtml(value = '') {
   return String(value).replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+}
+
+function safeItemImage(value = '') {
+  return /^(?:\/)?assets\/[a-z0-9_./-]+$/i.test(value) ? value : '';
 }
 
 function setField(name, value) {
@@ -28,11 +56,33 @@ function setField(name, value) {
   if (field) field.value = value ?? '';
 }
 
+function renderSlot(kind, field) {
+  const state = kind === 'alchemy' ? alchemyState[field] : equipmentState[field];
+  const button = document.querySelector(`[data-kind="${kind}"][data-slot="${field}"]`);
+  if (!button) return;
+  const image = safeItemImage(state.image);
+  button.classList.toggle('filled', Boolean(state.name));
+  button.querySelector('b').textContent = state.name || 'Slot liber';
+  button.title = state.bonuses || state.name || 'Apasă pentru selectare';
+  button.style.setProperty('--item-image', image ? `url("${image}")` : 'none');
+  button.classList.toggle('has-image', Boolean(image));
+}
+
+function renderAllSlots() {
+  equipmentFields.forEach(field => renderSlot('equipment', field));
+  alchemyFields.forEach(field => renderSlot('alchemy', field));
+}
+
 function populateForm(profile) {
   if (!profile) return;
   ['characterName', 'race', 'level', 'championLevel', 'tier', 'notes'].forEach(field => setField(field, profile[field]));
-  equipmentFields.forEach(field => setField(field, profile.equipment?.[field]));
   progressFields.forEach(field => setField(field, profile.progress?.[field]));
+  equipmentState = Object.fromEntries(equipmentFields.map(field => [field, normalizeSlot(profile.equipment?.[field])]));
+  alchemyState = Object.fromEntries(alchemyFields.map(field => [field, normalizeSlot(profile.alchemy?.[field])]));
+  if (profile.equipment?.alchemy && !alchemyFields.some(field => alchemyState[field].name)) {
+    alchemyState.diamond = normalizeSlot(profile.equipment.alchemy);
+  }
+  renderAllSlots();
 }
 
 function readForm() {
@@ -43,16 +93,67 @@ function readForm() {
     level: Number(data.get('level')),
     championLevel: Number(data.get('championLevel')),
     tier: Number(data.get('tier')),
-    equipment: Object.fromEntries(equipmentFields.map(field => [field, data.get(field)])),
+    equipment: equipmentState,
+    alchemy: alchemyState,
     progress: Object.fromEntries(progressFields.map(field => [field, data.get(field)])),
     notes: data.get('notes')
   };
 }
 
+function openPicker(button) {
+  activeSlot = { kind: button.dataset.kind, field: button.dataset.slot };
+  const state = activeSlot.kind === 'alchemy' ? alchemyState[activeSlot.field] : equipmentState[activeSlot.field];
+  const labels = activeSlot.kind === 'alchemy' ? alchemyLabels : equipmentLabels;
+  pickerTitle.textContent = labels[activeSlot.field];
+  pickerName.value = state.name;
+  pickerBonuses.value = state.bonuses;
+  picker.showModal();
+}
+
+document.querySelectorAll('.inventory-slot, .alchemy-slot').forEach(button => {
+  button.addEventListener('click', () => openPicker(button));
+});
+
+document.querySelector('#apply-slot')?.addEventListener('click', () => {
+  if (!activeSlot) return;
+  const collection = activeSlot.kind === 'alchemy' ? alchemyState : equipmentState;
+  collection[activeSlot.field] = {
+    ...collection[activeSlot.field],
+    name: pickerName.value.trim(),
+    bonuses: pickerBonuses.value.trim()
+  };
+  renderSlot(activeSlot.kind, activeSlot.field);
+  picker.close();
+});
+
+document.querySelector('#clear-slot')?.addEventListener('click', () => {
+  if (!activeSlot) return;
+  const collection = activeSlot.kind === 'alchemy' ? alchemyState : equipmentState;
+  collection[activeSlot.field] = emptySlot();
+  renderSlot(activeSlot.kind, activeSlot.field);
+  picker.close();
+});
+
+picker?.addEventListener('click', event => {
+  if (event.target === picker) picker.close();
+});
+
 function renderIdentity(user, progress) {
   const avatar = user.avatar ? `<img src="${escapeHtml(user.avatar)}" alt="">` : '<span class="avatar-fallback">D</span>';
   const profile = progress?.profile;
   identity.innerHTML = `${avatar}<div><small>CONT DISCORD</small><strong>${escapeHtml(user.username)}</strong><span>${profile ? `${escapeHtml(profile.characterName)} · Tier ${profile.tier}` : 'Profil necompletat'}</span></div>`;
+}
+
+function slotEntries(collection = {}, labels = {}) {
+  return Object.entries(collection)
+    .map(([key, value]) => [key, normalizeSlot(value)])
+    .filter(([, value]) => value.name)
+    .map(([key, value]) => ({ label: labels[key] || key, ...value }));
+}
+
+function renderDefinitionList(entries) {
+  if (!entries.length) return '<p>Nicio informație completată.</p>';
+  return `<dl>${entries.map(entry => `<div><dt>${escapeHtml(entry.label)}</dt><dd><strong>${escapeHtml(entry.name)}</strong>${entry.bonuses ? `<span>${escapeHtml(entry.bonuses)}</span>` : ''}</dd></div>`).join('')}</dl>`;
 }
 
 function renderPlayers(players) {
@@ -64,14 +165,16 @@ function renderPlayers(players) {
 
   playersList.innerHTML = players.map(player => {
     const profile = player.profile || {};
-    const equipment = Object.entries(profile.equipment || {}).filter(([, value]) => value);
-    const progression = Object.entries(profile.progress || {}).filter(([, value]) => value);
+    const equipment = slotEntries(profile.equipment, equipmentLabels);
+    const alchemy = slotEntries(profile.alchemy, alchemyLabels);
+    const progression = Object.entries(profile.progress || {}).filter(([, value]) => value).map(([key, value]) => ({ label: progressLabels[key] || key, name: value, bonuses: '' }));
     const avatar = player.discord_avatar ? `<img src="${escapeHtml(player.discord_avatar)}" alt="">` : '<span class="avatar-fallback">D</span>';
     return `<details class="player-card">
       <summary>${avatar}<div><strong>${escapeHtml(profile.characterName || 'Personaj fără nume')}</strong><span>${escapeHtml(player.discord_username)} · ${escapeHtml(raceLabels[profile.race] || profile.race || 'Rasă nesetată')}</span></div><div class="player-level"><b>Tier ${Number(profile.tier) || 1}</b><span>Lv. ${Number(profile.level) || 1}${profile.championLevel ? ` · C${Number(profile.championLevel)}` : ''}</span></div><i>＋</i></summary>
       <div class="player-details">
-        <section><h3>Echipament</h3>${equipment.length ? `<dl>${equipment.map(([key, value]) => `<div><dt>${escapeHtml(equipmentLabels[key] || key)}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl>` : '<p>Nicio informație completată.</p>'}</section>
-        <section><h3>Progres</h3>${progression.length ? `<dl>${progression.map(([key, value]) => `<div><dt>${escapeHtml(progressLabels[key] || key)}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl>` : '<p>Nicio informație completată.</p>'}${profile.notes ? `<div class="admin-notes"><strong>Observații</strong><p>${escapeHtml(profile.notes)}</p></div>` : ''}</section>
+        <section><h3>Echipament</h3>${renderDefinitionList(equipment)}</section>
+        <section><h3>Alchimie</h3>${renderDefinitionList(alchemy)}</section>
+        <section><h3>Progres</h3>${renderDefinitionList(progression)}${profile.notes ? `<div class="admin-notes"><strong>Observații</strong><p>${escapeHtml(profile.notes)}</p></div>` : ''}</section>
       </div><footer>Actualizat: ${new Date(player.updated_at).toLocaleString('ro-RO')}</footer>
     </details>`;
   }).join('');
@@ -131,6 +234,7 @@ async function initializeProgressPage() {
     if (!response.ok) throw new Error(payload.error || 'Profilul nu a putut fi încărcat.');
     renderIdentity(me.user, payload.progress);
     populateForm(payload.progress?.profile);
+    renderAllSlots();
     form.hidden = false;
 
     if (me.canAdminProgress) {

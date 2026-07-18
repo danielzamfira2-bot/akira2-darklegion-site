@@ -122,12 +122,26 @@ function cleanNumber(value, min, max) {
 
 const EQUIPMENT_FIELDS = [
   'weapon', 'armor', 'helmet', 'shield', 'bracelet', 'earrings',
-  'necklace', 'shoes', 'talisman', 'glove', 'sash', 'pet', 'alchemy'
+  'necklace', 'shoes', 'talisman', 'glove', 'sash', 'pet'
 ];
+const ALCHEMY_FIELDS = ['diamond', 'ruby', 'jade', 'sapphire', 'garnet', 'onyx', 'amethyst'];
 const PROGRESS_FIELDS = ['horse', 'biologist', 'mainFarm', 'accounts'];
 
+function normalizeItemSlot(value) {
+  if (typeof value === 'string') {
+    return { itemId: '', name: cleanText(value), bonuses: '', image: '' };
+  }
+  return {
+    itemId: cleanText(value?.itemId, 80),
+    name: cleanText(value?.name, 120),
+    bonuses: cleanText(value?.bonuses, 500),
+    image: cleanText(value?.image, 220)
+  };
+}
+
 function normalizePlayerProfile(body = {}) {
-  const equipment = Object.fromEntries(EQUIPMENT_FIELDS.map(field => [field, cleanText(body.equipment?.[field])]));
+  const equipment = Object.fromEntries(EQUIPMENT_FIELDS.map(field => [field, normalizeItemSlot(body.equipment?.[field])]));
+  const alchemy = Object.fromEntries(ALCHEMY_FIELDS.map(field => [field, normalizeItemSlot(body.alchemy?.[field])]));
   const progress = Object.fromEntries(PROGRESS_FIELDS.map(field => [field, cleanText(body.progress?.[field])]));
   return {
     characterName: cleanText(body.characterName, 40),
@@ -136,6 +150,7 @@ function normalizePlayerProfile(body = {}) {
     championLevel: cleanNumber(body.championLevel, 0, 30),
     tier: cleanNumber(body.tier, 1, 3),
     equipment,
+    alchemy,
     progress,
     notes: cleanText(body.notes, 1200)
   };
@@ -367,7 +382,7 @@ const publicFiles = new Set([
   'events.html', 'events.css', 'events.js', 'events-nav.css',
   'regulament.html', 'regulament.css', 'access.html', 'access.css', 'access.js',
   'farm.html', 'farm.css', 'farm.js',
-  'progres.html', 'progres.css', 'progres.js',
+  'progres.html', 'progres.css', 'progres-inventory.css', 'progres.js',
   'race-guide.css', 'race-guide.js', 'tier-guide.css', 'protected-guide.css',
   'auth-ui.js', 'auth-ui.css'
 ]);
