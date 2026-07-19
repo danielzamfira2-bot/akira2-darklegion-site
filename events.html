@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Calendarul săptămânal de evenimente Akira2, afișat în ora României.">
+  <meta name="description" content="Calendarul săptămânal de evenimente Akira2, adaptat automat la ora dispozitivului.">
   <title>Akira2 DarkLegion — Calendar evenimente</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,14 +15,14 @@
   <header>
     <a class="brand" href="index.html">AKIRA<span>2</span><small>DARKLEGION</small></a>
     <nav class="events-nav"><a href="index.html">Acasă</a><a class="active" href="events.html">Evenimente</a><a href="index.html#rase">Ghiduri rase</a><a href="farm.html">Strategie Farm</a><a href="progres.html">Progres</a><a href="regulament.html">Regulament</a></nav>
-    <div class="clock"><span>ORA ROMÂNIEI</span><strong id="ro-clock">--:--:--</strong></div>
+    <div class="clock"><span id="clock-zone-label">ORA LOCALĂ</span><strong id="ro-clock">--:--:--</strong></div>
   </header>
 
   <main>
     <section class="intro">
       <p class="eyebrow">CALENDAR SĂPTĂMÂNAL</p>
       <h1>Nu rata următorul<br><em>eveniment.</em></h1>
-      <p>Programul Akira2, transformat automat din ora serverului în ora României.</p>
+      <p>Programul Akira2, transformat automat din ora serverului în ora dispozitivului tău.</p>
     </section>
 
     <section class="today-panel" aria-labelledby="today-title">
@@ -43,11 +43,11 @@
         <div><p class="eyebrow">PROGRAM COMPLET</p><h2>Calendar evenimente</h2></div>
         <div class="timezone-switch" role="group" aria-label="Fus orar">
           <button data-zone="server">Server <small>CET/CEST</small></button>
-          <button class="active" data-zone="romania">România <small>+1 oră</small></button>
+          <button class="active" data-zone="local">Ora mea <small id="local-zone-short">automat</small></button>
         </div>
       </div>
 
-      <div class="timezone-note"><span>i</span> Evenimentele sunt publicate în ora Europei Centrale. Pentru România adăugăm automat o oră.</div>
+      <div class="timezone-note"><span>i</span> <span id="timezone-note-text">Detectăm fusul orar al dispozitivului…</span></div>
 
       <div class="calendar-wrap">
         <table>

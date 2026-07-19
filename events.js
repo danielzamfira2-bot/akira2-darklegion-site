@@ -9,28 +9,51 @@ const schedule = [
 ];
 
 const baseSlots = [['14:00', '17:00'], ['19:00', '22:00'], ['00:00', '03:00']];
-let zone = 'romania';
+const serverTimeZone = 'Europe/Berlin';
+const localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+let zone = 'local';
 const body = document.querySelector('#calendar-body');
 
-function shiftTime(time, amount) {
+function timeZoneOffsetMinutes(timeZone, date = new Date()) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+  }).formatToParts(date).filter(part => part.type !== 'literal').map(part => [part.type, Number(part.value)]));
+  return Math.round((Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second) - date.getTime()) / 60000);
+}
+
+function localShiftMinutes() {
+  if (zone === 'server') return 0;
+  const now = new Date();
+  return timeZoneOffsetMinutes(localTimeZone, now) - timeZoneOffsetMinutes(serverTimeZone, now);
+}
+
+function shiftTime(time, amountMinutes = localShiftMinutes()) {
   const [hours, minutes] = time.split(':').map(Number);
-  return `${String((hours + amount + 24) % 24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  const total = (hours * 60 + minutes + amountMinutes + 1440) % 1440;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
 function rangeLabel(range) {
-  const shift = zone === 'romania' ? 1 : 0;
-  return `${shiftTime(range[0], shift)}–${shiftTime(range[1], shift)}`;
+  return `${shiftTime(range[0])}–${shiftTime(range[1])}`;
 }
 
 function specialLabel(value) {
   const [start, end] = value.split('–');
-  const shift = zone === 'romania' ? 1 : 0;
-  return `${shiftTime(start, shift)}–${end === '23:59' ? (shift ? '00:59' : end) : shiftTime(end, shift)}`;
+  return `${shiftTime(start)}–${shiftTime(end)}`;
 }
 
 function currentIndex() {
-  const weekday = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Bucharest', weekday: 'short' }).format(new Date());
+  const displayTimeZone = zone === 'server' ? serverTimeZone : localTimeZone;
+  const weekday = new Intl.DateTimeFormat('en-US', { timeZone: displayTimeZone, weekday: 'short' }).format(new Date());
   return { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 }[weekday];
+}
+
+function startMinutes(time) {
+  const shifted = shiftTime(time);
+  const [hours, minutes] = shifted.split(':').map(Number);
+  return hours * 60 + minutes;
 }
 
 function render() {
@@ -47,29 +70,47 @@ function render() {
 
 function renderToday() {
   const today = schedule[currentIndex()];
-  const entries = today.events.map((name, index) => ({ name, time: rangeLabel(baseSlots[index]), hour: Number(baseSlots[index][0].split(':')[0]) + 1 }));
-  entries.push({ name: today.special, time: specialLabel(today.specialTime), hour: Number(today.specialTime.slice(0, 2)) + 1 });
+  const entries = today.events.map((name, index) => ({ name, time: rangeLabel(baseSlots[index]), minutes: startMinutes(baseSlots[index][0]) }));
+  entries.push({ name: today.special, time: specialLabel(today.specialTime), minutes: startMinutes(today.specialTime.split('–')[0]) });
   document.querySelector('#today-events').innerHTML = entries.map(event => `<div class="event-pill"><span>${event.time}</span><strong>${event.name}</strong></div>`).join('');
 
-  const nowHour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Bucharest', hour: '2-digit', hour12: false }).format(new Date()));
-  const next = entries.filter(event => event.hour > nowHour).sort((a, b) => a.hour - b.hour)[0];
+  const displayTimeZone = zone === 'server' ? serverTimeZone : localTimeZone;
+  const nowParts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: displayTimeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()).filter(part => part.type !== 'literal').map(part => [part.type, Number(part.value)]));
+  const nowMinutes = nowParts.hour * 60 + nowParts.minute;
+  const next = entries.filter(event => event.minutes > nowMinutes).sort((a, b) => a.minutes - b.minutes)[0];
   document.querySelector('#next-event').innerHTML = next
-    ? `<p class="label">URMĂTORUL EVENIMENT</p><strong>${next.name}</strong><span>Astăzi la ${next.time.split('–')[0]} · ${zone === 'romania' ? 'ora României' : 'ora serverului'}</span>`
+    ? `<p class="label">URMĂTORUL EVENIMENT</p><strong>${next.name}</strong><span>Astăzi la ${next.time.split('–')[0]} · ${zone === 'local' ? 'ora dispozitivului' : 'ora serverului'}</span>`
     : `<p class="label">PROGRAMUL DE AZI</p><strong>Evenimente încheiate</strong><span>Revino mâine pentru următoarea rotație.</span>`;
 }
 
 function updateClock() {
   const now = new Date();
-  document.querySelector('#ro-clock').textContent = new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(now);
-  document.querySelector('#today-date').textContent = new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', weekday: 'long', day: 'numeric', month: 'long' }).format(now).toUpperCase();
+  const displayTimeZone = zone === 'server' ? serverTimeZone : localTimeZone;
+  document.querySelector('#ro-clock').textContent = new Intl.DateTimeFormat('ro-RO', { timeZone: displayTimeZone, hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(now);
+  document.querySelector('#today-date').textContent = new Intl.DateTimeFormat('ro-RO', { timeZone: displayTimeZone, weekday: 'long', day: 'numeric', month: 'long' }).format(now).toUpperCase();
+  document.querySelector('#clock-zone-label').textContent = zone === 'server' ? 'ORA SERVERULUI' : 'ORA LOCALĂ';
+}
+
+function updateTimeZoneInfo() {
+  const shift = localShiftMinutes();
+  const sign = shift >= 0 ? '+' : '−';
+  const absolute = Math.abs(shift);
+  const difference = absolute ? `${sign}${Math.floor(absolute / 60)}:${String(absolute % 60).padStart(2, '0')}` : 'aceeași oră';
+  document.querySelector('#local-zone-short').textContent = localTimeZone.replace(/_/g, ' ');
+  document.querySelector('#timezone-note-text').textContent = zone === 'server'
+    ? 'Calendarul este afișat în ora serverului (CET/CEST).'
+    : `Fus detectat: ${localTimeZone.replace(/_/g, ' ')} · diferență față de server: ${difference}.`;
 }
 
 document.querySelectorAll('[data-zone]').forEach(button => button.addEventListener('click', () => {
   zone = button.dataset.zone;
   document.querySelectorAll('[data-zone]').forEach(item => item.classList.toggle('active', item === button));
+  updateTimeZoneInfo();
+  updateClock();
   render();
 }));
 
+updateTimeZoneInfo();
 updateClock();
 setInterval(updateClock, 1000);
 render();
