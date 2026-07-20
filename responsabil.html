@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Panoul Responsabililor Akira2 DarkLegion">
+  <title>Akira2 DarkLegion — Panou Responsabil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="progres.css">
+  <link rel="stylesheet" href="weekly-tasks.css">
+  <link rel="stylesheet" href="responsabil.css">
+  <style>[hidden]{display:none!important}</style>
+</head>
+<body>
+  <header class="progress-header">
+    <a class="brand" href="index.html">AKIRA<span>2</span><small>DARKLEGION</small></a>
+    <button class="menu-button" aria-expanded="false" aria-label="Deschide meniul">☰</button>
+    <nav class="progress-nav" aria-label="Navigare principală">
+      <a href="index.html">Acasă</a><a href="events.html">Evenimente</a><a href="index.html#rase">Ghiduri rase</a><a href="farm.html">Strategie Farm</a><a href="progres.html">Progres</a><a class="active" href="responsabil.html">Responsabili</a><a href="regulament.html">Regulament</a>
+    </nav>
+  </header>
+
+  <main class="progress-page responsible-page">
+    <section class="progress-hero responsible-hero">
+      <div><p class="eyebrow">MANAGEMENT TIER</p><h1>Panou <em>Responsabil</em></h1><p>Administrează obiectivele săptămânale și anunțurile afișate membrilor tierului tău.</p></div>
+      <div id="responsible-scope" class="responsible-scope"><span>SE VERIFICĂ ACCESUL</span></div>
+    </section>
+
+    <section id="responsible-denied" class="responsible-denied" hidden>
+      <span>◇</span><h2>Acces restricționat</h2><p>Pagina este disponibilă numai rolurilor Discord Admin și Responsabil de Tier.</p><a href="index.html">Înapoi la pagina principală</a>
+    </section>
+
+    <section id="announcement-manager" class="announcement-manager" hidden>
+      <header><div><p class="eyebrow">ANUNȚURI PE PAGINA PRINCIPALĂ</p><h2>Comunicate pentru tier</h2><p>Anunțurile active sunt afișate membrilor tierului selectat, deasupra selecției caracterelor.</p></div></header>
+      <form id="announcement-form" class="announcement-form">
+        <input id="announcement-id" type="hidden">
+        <label><span>Tier</span><select id="announcement-tier" required></select></label>
+        <label><span>Titlu</span><input id="announcement-title" maxlength="100" required placeholder="Ex: Obiectivul acestei săptămâni"></label>
+        <label class="announcement-message"><span>Mesaj</span><textarea id="announcement-message" maxlength="1000" rows="4" required placeholder="Scrie anunțul pentru membrii tierului…"></textarea></label>
+        <div class="announcement-actions"><button id="announcement-cancel" type="button" hidden>Renunță</button><button type="submit">Publică anunțul</button></div>
+      </form>
+      <p id="announcement-status" class="weekly-status" role="status"></p>
+      <div id="announcement-list" class="announcement-list"><p>Se încarcă anunțurile…</p></div>
+    </section>
+
+    <section id="weekly-panel" class="weekly-panel" hidden>
+      <header class="weekly-heading">
+        <div><p class="eyebrow">EVIDENȚĂ SĂPTĂMÂNALĂ</p><h2>Taskurile tierului</h2><p>Selectează membrul, itemul sau suma de Woni și cantitatea stabilită pentru săptămâna aleasă.</p></div>
+        <label><span>Săptămâna care începe luni</span><input id="weekly-date" type="date"></label>
+      </header>
+      <form id="weekly-task-form" class="weekly-task-form">
+        <input id="weekly-task-id" type="hidden">
+        <label><span>Tier</span><select id="weekly-tier" required></select></label>
+        <label><span>Jucător</span><select id="weekly-player" required><option value="">Selectează persoana</option></select></label>
+        <label class="weekly-item"><span>Item / Woni</span><input id="weekly-item" maxlength="120" required placeholder="Ex: Sabie Zodiac +9 sau Woni"></label>
+        <label><span>Cantitate</span><input id="weekly-quantity" type="number" min="1" max="999999999" value="1" required></label>
+        <div class="weekly-form-actions"><button id="weekly-cancel-edit" type="button" hidden>Renunță</button><button type="submit">Adaugă task</button></div>
+      </form>
+      <p id="weekly-status" class="weekly-status" role="status"></p>
+      <div class="weekly-table-wrap"><table class="weekly-table"><thead><tr><th>Tier</th><th>Jucător</th><th>Item / Woni</th><th>Cantitate</th><th>Stare</th><th>Acțiuni</th></tr></thead><tbody id="weekly-task-list"><tr><td colspan="6">Se încarcă…</td></tr></tbody></table></div>
+    </section>
+  </main>
+
+  <footer><span>AKIRA2 DARKLEGION</span><p>Instrument intern pentru organizarea tierurilor.</p></footer>
+  <script src="responsabil.js"></script>
+  <script src="weekly-tasks.js"></script>
+  <script src="/auth-ui.js"></script>
+</body>
+</html>

@@ -517,12 +517,109 @@ app.delete('/api/weekly-tasks/:id', requireLogin, requireDatabase, async (req, r
   }
 });
 
+app.get('/api/announcements/me', requireLogin, requireDatabase, async (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  await refreshRoles(req);
+  const tier = req.session.tier || 1;
+  try {
+    const result = await databasePool.query(
+      `SELECT id, tier, title, message, author_name, created_at, updated_at
+       FROM tier_announcements WHERE tier = $1 AND active = TRUE
+       ORDER BY updated_at DESC LIMIT 10`,
+      [tier]
+    );
+    res.json({ tier, announcements: result.rows });
+  } catch (error) {
+    console.error('Citirea anunțurilor a eșuat:', error.message);
+    res.status(500).json({ error: 'Anunțurile nu au putut fi încărcate.' });
+  }
+});
+
+app.get('/api/announcements/manage', requireLogin, requireDatabase, async (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  const context = await managedTaskContext(req, res);
+  if (!context) return;
+  try {
+    const result = await databasePool.query(
+      `SELECT id, tier, title, message, active, author_name, created_at, updated_at
+       FROM tier_announcements WHERE tier = ANY($1::int[])
+       ORDER BY active DESC, updated_at DESC`,
+      [context.tiers]
+    );
+    res.json({ announcements: result.rows, managedTiers: context.tiers, isAdmin: context.isAdmin });
+  } catch (error) {
+    console.error('Administrarea anunțurilor a eșuat:', error.message);
+    res.status(500).json({ error: 'Anunțurile nu au putut fi încărcate.' });
+  }
+});
+
+app.post('/api/announcements', requireLogin, requireDatabase, async (req, res) => {
+  const context = await managedTaskContext(req, res);
+  if (!context) return;
+  const tier = cleanNumber(req.body.tier, 1, 3);
+  const title = cleanText(req.body.title, 100);
+  const message = cleanText(req.body.message, 1000);
+  if (!context.tiers.includes(tier) || title.length < 2 || message.length < 2) {
+    return res.status(400).json({ error: 'Completează tierul, titlul și mesajul anunțului.' });
+  }
+  try {
+    const result = await databasePool.query(
+      `INSERT INTO tier_announcements (tier, title, message, author_id, author_name, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *`,
+      [tier, title, message, req.session.user.id, req.session.user.username]
+    );
+    res.status(201).json({ announcement: result.rows[0] });
+  } catch (error) {
+    console.error('Publicarea anunțului a eșuat:', error.message);
+    res.status(500).json({ error: 'Anunțul nu a putut fi publicat.' });
+  }
+});
+
+app.put('/api/announcements/:id', requireLogin, requireDatabase, async (req, res) => {
+  const context = await managedTaskContext(req, res);
+  if (!context) return;
+  const id = cleanNumber(req.params.id, 1, Number.MAX_SAFE_INTEGER);
+  try {
+    const existing = await databasePool.query('SELECT * FROM tier_announcements WHERE id = $1', [id]);
+    if (!existing.rowCount) return res.status(404).json({ error: 'Anunțul nu există.' });
+    if (!context.tiers.includes(existing.rows[0].tier)) return res.status(403).json({ error: 'Nu poți modifica anunțurile acestui tier.' });
+    const title = req.body.title === undefined ? existing.rows[0].title : cleanText(req.body.title, 100);
+    const message = req.body.message === undefined ? existing.rows[0].message : cleanText(req.body.message, 1000);
+    const active = req.body.active === undefined ? existing.rows[0].active : Boolean(req.body.active);
+    if (title.length < 2 || message.length < 2) return res.status(400).json({ error: 'Titlul și mesajul sunt obligatorii.' });
+    const result = await databasePool.query(
+      `UPDATE tier_announcements SET title = $1, message = $2, active = $3, author_id = $4, author_name = $5, updated_at = NOW()
+       WHERE id = $6 RETURNING *`,
+      [title, message, active, req.session.user.id, req.session.user.username, id]
+    );
+    res.json({ announcement: result.rows[0] });
+  } catch (error) {
+    console.error('Modificarea anunțului a eșuat:', error.message);
+    res.status(500).json({ error: 'Anunțul nu a putut fi modificat.' });
+  }
+});
+
+app.delete('/api/announcements/:id', requireLogin, requireDatabase, async (req, res) => {
+  const context = await managedTaskContext(req, res);
+  if (!context) return;
+  const id = cleanNumber(req.params.id, 1, Number.MAX_SAFE_INTEGER);
+  try {
+    const result = await databasePool.query('DELETE FROM tier_announcements WHERE id = $1 AND tier = ANY($2::int[]) RETURNING id', [id, context.tiers]);
+    if (!result.rowCount) return res.status(404).json({ error: 'Anunț inexistent sau fără acces.' });
+    res.status(204).end();
+  } catch (error) {
+    console.error('Ștergerea anunțului a eșuat:', error.message);
+    res.status(500).json({ error: 'Anunțul nu a putut fi șters.' });
+  }
+});
+
 const publicFiles = new Set([
-  'index.html', 'styles.css', 'script.js', 'guide-basics.css', 'guide.js',
+  'index.html', 'styles.css', 'announcements.css', 'script.js', 'guide-basics.css', 'guide.js',
   'events.html', 'events.css', 'events.js', 'events-nav.css',
   'regulament.html', 'regulament.css', 'access.html', 'access.css', 'access.js',
   'farm.html', 'farm.css', 'farm.js',
   'progres.html', 'progres.css', 'progres-inventory.css', 'progres-ruby.css', 'weekly-tasks.css', 'alchemy-data.js', 'progres.js', 'weekly-tasks.js',
+  'responsabil.html', 'responsabil.css', 'responsabil.js',
   'race-guide.css', 'race-guide.js', 'tier-guide.css', 'protected-guide.css',
   'auth-ui.js', 'auth-ui.css'
 ]);
@@ -563,6 +660,20 @@ async function startServer() {
       )
     `);
     await databasePool.query('CREATE INDEX IF NOT EXISTS weekly_tasks_week_tier_idx ON weekly_tasks (week_start, tier)');
+    await databasePool.query(`
+      CREATE TABLE IF NOT EXISTS tier_announcements (
+        id BIGSERIAL PRIMARY KEY,
+        tier SMALLINT NOT NULL CHECK (tier BETWEEN 1 AND 3),
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        author_id TEXT NOT NULL,
+        author_name TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await databasePool.query('CREATE INDEX IF NOT EXISTS tier_announcements_tier_active_idx ON tier_announcements (tier, active, updated_at DESC)');
   }
   app.listen(PORT, () => console.log(`Akira2 DarkLegion rulează pe portul ${PORT}`));
 }
