@@ -280,6 +280,16 @@ async function loadAdminPlayers() {
   renderPlayers(payload.players);
 }
 
+function configureManagerPanel(me) {
+  const isAdmin = Boolean(me.canAdminProgress);
+  const tiers = me.managedProgressTiers || [];
+  document.querySelector('#manager-eyebrow').textContent = isAdmin ? 'PANOU ADMIN' : 'PANOU RESPONSABIL';
+  document.querySelector('#manager-title').textContent = isAdmin ? 'Progresul tuturor membrilor' : `Progres Tier ${tiers.join(', ')}`;
+  document.querySelector('#manager-description').textContent = isAdmin
+    ? 'Ai acces la echipamentul și progresul tuturor tierurilor.'
+    : `Ai acces numai la membrii din Tier ${tiers.join(', ')}.`;
+}
+
 form.addEventListener('submit', async event => {
   event.preventDefault();
   const button = form.querySelector('button[type="submit"]');
@@ -299,7 +309,7 @@ form.addEventListener('submit', async event => {
     saveStatus.className = 'success';
     const me = await fetch('/api/me', { credentials: 'same-origin' }).then(result => result.json());
     renderIdentity(me.user, payload.progress);
-    if (me.canAdminProgress) await loadAdminPlayers();
+    if (me.managedProgressTiers?.length) await loadAdminPlayers();
   } catch (error) {
     saveStatus.textContent = error.message;
     saveStatus.className = 'error';
@@ -329,7 +339,8 @@ async function initializeProgressPage() {
     renderAllSlots();
     form.hidden = false;
 
-    if (me.canAdminProgress) {
+    if (me.managedProgressTiers?.length) {
+      configureManagerPanel(me);
       adminPanel.hidden = false;
       await loadAdminPlayers();
     }

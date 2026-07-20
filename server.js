@@ -100,6 +100,18 @@ function canAdminProgress(roles = []) {
   return allowedRoles.some(role => roles.includes(role));
 }
 
+function roleIds(variableName) {
+  return (process.env[variableName] || '').split(',').map(role => role.trim()).filter(Boolean);
+}
+
+function responsibleTiers(roles = []) {
+  return [1, 2, 3].filter(tier => roleIds(`DISCORD_TIER_${tier}_RESPONSIBLE_ROLE_IDS`).some(role => roles.includes(role)));
+}
+
+function manageableTiers(roles = []) {
+  return canAdminProgress(roles) ? [1, 2, 3] : responsibleTiers(roles);
+}
+
 function requireLogin(req, res, next) {
   if (!req.session.user) return res.status(401).json({ error: 'Autentificare necesară.' });
   next();
@@ -278,13 +290,16 @@ app.post('/auth/logout', (req, res) => {
 
 app.get('/api/me', async (req, res) => {
   res.set('Cache-Control', 'no-store');
-  if (!req.session.user) return res.json({ authenticated: false, tier: 1, canAdminProgress: false });
+  if (!req.session.user) return res.json({ authenticated: false, tier: 1, canAdminProgress: false, responsibleTiers: [], managedProgressTiers: [] });
   await refreshRoles(req);
+  const roles = req.session.roles || [];
   res.json({
     authenticated: true,
     user: req.session.user,
     tier: req.session.tier || 1,
-    canAdminProgress: canAdminProgress(req.session.roles || [])
+    canAdminProgress: canAdminProgress(roles),
+    responsibleTiers: responsibleTiers(roles),
+    managedProgressTiers: manageableTiers(roles)
   });
 });
 
@@ -365,20 +380,140 @@ app.put('/api/progress/me', requireLogin, requireDatabase, async (req, res) => {
 app.get('/api/progress/all', requireLogin, requireDatabase, async (req, res) => {
   res.set('Cache-Control', 'private, no-store');
   await refreshRoles(req);
-  if (!canAdminProgress(req.session.roles || [])) {
-    return res.status(403).json({ error: 'Rolul Admin este necesar.' });
-  }
+  const tiers = manageableTiers(req.session.roles || []);
+  if (!tiers.length) return res.status(403).json({ error: 'Rolul Admin sau Responsabil de Tier este necesar.' });
 
   try {
     const result = await databasePool.query(
       `SELECT discord_user_id, discord_username, discord_avatar, profile, updated_at
        FROM player_progress
+       WHERE COALESCE((profile->>'tier')::int, 1) = ANY($1::int[])
        ORDER BY updated_at DESC`
+      , [tiers]
     );
-    res.json({ players: result.rows });
+    res.json({ players: result.rows, managedTiers: tiers, isAdmin: canAdminProgress(req.session.roles || []) });
   } catch (error) {
     console.error('Lista progresului a eșuat:', error.message);
     res.status(500).json({ error: 'Lista jucătorilor nu a putut fi încărcată.' });
+  }
+});
+
+function currentMonday() {
+  const now = new Date();
+  const day = now.getUTCDay() || 7;
+  now.setUTCDate(now.getUTCDate() - day + 1);
+  return now.toISOString().slice(0, 10);
+}
+
+function validWeekStart(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return null;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isNaN(date.getTime()) || date.getUTCDay() !== 1 ? null : String(value);
+}
+
+async function managedTaskContext(req, res) {
+  await refreshRoles(req);
+  const tiers = manageableTiers(req.session.roles || []);
+  if (!tiers.length) {
+    res.status(403).json({ error: 'Rolul Admin sau Responsabil de Tier este necesar.' });
+    return null;
+  }
+  return { tiers, isAdmin: canAdminProgress(req.session.roles || []) };
+}
+
+app.get('/api/weekly-tasks', requireLogin, requireDatabase, async (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  const context = await managedTaskContext(req, res);
+  if (!context) return;
+  const weekStart = validWeekStart(req.query.week) || currentMonday();
+  try {
+    const [tasks, players] = await Promise.all([
+      databasePool.query(
+        `SELECT id, week_start, tier, discord_user_id, discord_username, item_or_woni, quantity, completed, updated_at
+         FROM weekly_tasks WHERE week_start = $1 AND tier = ANY($2::int[])
+         ORDER BY tier, completed, discord_username, id`,
+        [weekStart, context.tiers]
+      ),
+      databasePool.query(
+        `SELECT discord_user_id, discord_username, profile
+         FROM player_progress WHERE COALESCE((profile->>'tier')::int, 1) = ANY($1::int[])
+         ORDER BY LOWER(discord_username)`,
+        [context.tiers]
+      )
+    ]);
+    res.json({ weekStart, tasks: tasks.rows, players: players.rows, managedTiers: context.tiers, isAdmin: context.isAdmin });
+  } catch (error) {
+    console.error('Citirea taskurilor săptămânale a eșuat:', error.message);
+    res.status(500).json({ error: 'Tabelul săptămânal nu a putut fi încărcat.' });
+  }
+});
+
+app.post('/api/weekly-tasks', requireLogin, requireDatabase, async (req, res) => {
+  const context = await managedTaskContext(req, res);
+  if (!context) return;
+  const weekStart = validWeekStart(req.body.weekStart);
+  const tier = cleanNumber(req.body.tier, 1, 3);
+  const discordUserId = cleanText(req.body.discordUserId, 30);
+  const itemOrWoni = cleanText(req.body.itemOrWoni, 120);
+  const quantity = cleanNumber(req.body.quantity, 1, 999999999);
+  if (!weekStart || !context.tiers.includes(tier) || !discordUserId || !itemOrWoni) {
+    return res.status(400).json({ error: 'Completează corect săptămâna, tierul, jucătorul, itemul și cantitatea.' });
+  }
+  try {
+    const player = await databasePool.query(
+      `SELECT discord_username FROM player_progress
+       WHERE discord_user_id = $1 AND COALESCE((profile->>'tier')::int, 1) = $2`,
+      [discordUserId, tier]
+    );
+    if (!player.rowCount) return res.status(400).json({ error: 'Jucătorul nu aparține tierului selectat.' });
+    const result = await databasePool.query(
+      `INSERT INTO weekly_tasks
+        (week_start, tier, discord_user_id, discord_username, item_or_woni, quantity, created_by, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING *`,
+      [weekStart, tier, discordUserId, player.rows[0].discord_username, itemOrWoni, quantity, req.session.user.id]
+    );
+    res.status(201).json({ task: result.rows[0] });
+  } catch (error) {
+    console.error('Adăugarea taskului a eșuat:', error.message);
+    res.status(500).json({ error: 'Taskul nu a putut fi adăugat.' });
+  }
+});
+
+app.put('/api/weekly-tasks/:id', requireLogin, requireDatabase, async (req, res) => {
+  const context = await managedTaskContext(req, res);
+  if (!context) return;
+  const id = cleanNumber(req.params.id, 1, Number.MAX_SAFE_INTEGER);
+  try {
+    const existing = await databasePool.query('SELECT * FROM weekly_tasks WHERE id = $1', [id]);
+    if (!existing.rowCount) return res.status(404).json({ error: 'Taskul nu există.' });
+    if (!context.tiers.includes(existing.rows[0].tier)) return res.status(403).json({ error: 'Nu poți modifica taskurile acestui tier.' });
+
+    const itemOrWoni = cleanText(req.body.itemOrWoni, 120) || existing.rows[0].item_or_woni;
+    const quantity = req.body.quantity === undefined ? existing.rows[0].quantity : cleanNumber(req.body.quantity, 1, 999999999);
+    const completed = req.body.completed === undefined ? existing.rows[0].completed : Boolean(req.body.completed);
+    const result = await databasePool.query(
+      `UPDATE weekly_tasks SET item_or_woni = $1, quantity = $2, completed = $3, updated_at = NOW()
+       WHERE id = $4 RETURNING *`,
+      [itemOrWoni, quantity, completed, id]
+    );
+    res.json({ task: result.rows[0] });
+  } catch (error) {
+    console.error('Modificarea taskului a eșuat:', error.message);
+    res.status(500).json({ error: 'Taskul nu a putut fi modificat.' });
+  }
+});
+
+app.delete('/api/weekly-tasks/:id', requireLogin, requireDatabase, async (req, res) => {
+  const context = await managedTaskContext(req, res);
+  if (!context) return;
+  const id = cleanNumber(req.params.id, 1, Number.MAX_SAFE_INTEGER);
+  try {
+    const result = await databasePool.query('DELETE FROM weekly_tasks WHERE id = $1 AND tier = ANY($2::int[]) RETURNING id', [id, context.tiers]);
+    if (!result.rowCount) return res.status(404).json({ error: 'Task inexistent sau fără acces.' });
+    res.status(204).end();
+  } catch (error) {
+    console.error('Ștergerea taskului a eșuat:', error.message);
+    res.status(500).json({ error: 'Taskul nu a putut fi șters.' });
   }
 });
 
@@ -387,7 +522,7 @@ const publicFiles = new Set([
   'events.html', 'events.css', 'events.js', 'events-nav.css',
   'regulament.html', 'regulament.css', 'access.html', 'access.css', 'access.js',
   'farm.html', 'farm.css', 'farm.js',
-  'progres.html', 'progres.css', 'progres-inventory.css', 'progres-ruby.css', 'alchemy-data.js', 'progres.js',
+  'progres.html', 'progres.css', 'progres-inventory.css', 'progres-ruby.css', 'weekly-tasks.css', 'alchemy-data.js', 'progres.js', 'weekly-tasks.js',
   'race-guide.css', 'race-guide.js', 'tier-guide.css', 'protected-guide.css',
   'auth-ui.js', 'auth-ui.css'
 ]);
@@ -412,6 +547,22 @@ async function startServer() {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
+    await databasePool.query(`
+      CREATE TABLE IF NOT EXISTS weekly_tasks (
+        id BIGSERIAL PRIMARY KEY,
+        week_start DATE NOT NULL,
+        tier SMALLINT NOT NULL CHECK (tier BETWEEN 1 AND 3),
+        discord_user_id TEXT NOT NULL,
+        discord_username TEXT NOT NULL,
+        item_or_woni TEXT NOT NULL,
+        quantity INTEGER NOT NULL CHECK (quantity > 0),
+        completed BOOLEAN NOT NULL DEFAULT FALSE,
+        created_by TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await databasePool.query('CREATE INDEX IF NOT EXISTS weekly_tasks_week_tier_idx ON weekly_tasks (week_start, tier)');
   }
   app.listen(PORT, () => console.log(`Akira2 DarkLegion rulează pe portul ${PORT}`));
 }

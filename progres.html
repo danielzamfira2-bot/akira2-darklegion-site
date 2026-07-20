@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="progres.css">
   <link rel="stylesheet" href="progres-inventory.css">
   <link rel="stylesheet" href="progres-ruby.css">
+  <link rel="stylesheet" href="weekly-tasks.css">
   <style>[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -108,9 +109,31 @@
     </form>
 
     <section id="admin-panel" class="admin-panel" hidden>
-      <header><div><p class="eyebrow">PANOU ADMIN</p><h2>Progresul tuturor membrilor</h2><p>Vizibil numai utilizatorilor care au rolul Discord Admin.</p></div><button id="refresh-admin" type="button">Reîncarcă</button></header>
+      <header><div><p class="eyebrow" id="manager-eyebrow">PANOU RESPONSABIL</p><h2 id="manager-title">Progresul membrilor gestionați</h2><p id="manager-description">Echipamentul și progresul membrilor din tierul tău.</p></div><button id="refresh-admin" type="button">Reîncarcă</button></header>
       <div id="admin-summary" class="admin-summary"></div>
       <div id="players-list" class="players-list"><p class="empty-state">Se încarcă profilurile…</p></div>
+    </section>
+
+    <section id="weekly-panel" class="weekly-panel" hidden>
+      <header class="weekly-heading">
+        <div><p class="eyebrow">EVIDENȚĂ SĂPTĂMÂNALĂ</p><h2>Taskurile tierului</h2><p>Selectează membrul, itemul sau suma de Woni și cantitatea stabilită pentru săptămâna aleasă.</p></div>
+        <label><span>Săptămâna care începe luni</span><input id="weekly-date" type="date"></label>
+      </header>
+      <form id="weekly-task-form" class="weekly-task-form">
+        <input id="weekly-task-id" type="hidden">
+        <label><span>Tier</span><select id="weekly-tier" required></select></label>
+        <label><span>Jucător</span><select id="weekly-player" required><option value="">Selectează persoana</option></select></label>
+        <label class="weekly-item"><span>Item / Woni</span><input id="weekly-item" maxlength="120" required placeholder="Ex: Sabie Zodiac +9 sau Woni"></label>
+        <label><span>Cantitate</span><input id="weekly-quantity" type="number" min="1" max="999999999" value="1" required></label>
+        <div class="weekly-form-actions"><button id="weekly-cancel-edit" type="button" hidden>Renunță</button><button type="submit">Adaugă task</button></div>
+      </form>
+      <p id="weekly-status" class="weekly-status" role="status"></p>
+      <div class="weekly-table-wrap">
+        <table class="weekly-table">
+          <thead><tr><th>Tier</th><th>Jucător</th><th>Item / Woni</th><th>Cantitate</th><th>Stare</th><th>Acțiuni</th></tr></thead>
+          <tbody id="weekly-task-list"><tr><td colspan="6">Se încarcă…</td></tr></tbody>
+        </table>
+      </div>
     </section>
 
     <dialog id="item-picker" class="item-picker">
@@ -135,6 +158,7 @@
   <footer><span>AKIRA2 DARKLEGION</span><p>Fiecare membru este responsabil să își păstreze profilul actualizat.</p></footer>
   <script src="alchemy-data.js"></script>
   <script src="progres.js"></script>
+  <script src="weekly-tasks.js"></script>
   <script src="/auth-ui.js"></script>
 </body>
 </html>

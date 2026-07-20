@@ -38,6 +38,9 @@ Adaugă în serviciul site-ului:
 - `DISCORD_TIER_2_ROLE_ID`
 - `DISCORD_TIER_3_ROLE_ID`
 - `DISCORD_PROGRESS_ADMIN_ROLE_IDS` — ID-ul rolului Admin; acceptă mai multe ID-uri separate prin virgulă
+- `DISCORD_TIER_1_RESPONSIBLE_ROLE_IDS` — rolul/rolurile Responsabil Tier I
+- `DISCORD_TIER_2_RESPONSIBLE_ROLE_IDS` — rolul/rolurile Responsabil Tier II
+- `DISCORD_TIER_3_RESPONSIBLE_ROLE_IDS` — rolul/rolurile Responsabil Tier III
 - `DISCORD_BOT_TOKEN` — tokenul botului existent, folosit numai pe server pentru reverificarea rolurilor
 
 Adaugă un serviciu PostgreSQL în același proiect Railway. Tabelul de sesiuni se creează automat.
@@ -52,4 +55,4 @@ Botul poate continua să acorde și să retragă rolurile. Site-ul le verifică 
 
 ## Profiluri de progres
 
-Membrii autentificați își pot salva echipamentul și progresul în pagina `progres.html`. Datele sunt păstrate în PostgreSQL. Numai utilizatorii cu unul dintre rolurile configurate în `DISCORD_PROGRESS_ADMIN_ROLE_IDS` pot vedea lista tuturor profilurilor.
+Membrii autentificați își pot salva echipamentul și progresul în pagina `progres.html`. Datele sunt păstrate în PostgreSQL. Adminul vede toate profilurile, iar fiecare Responsabil vede numai profilurile tierului configurat pentru rolul său. Adminul și Responsabilii pot gestiona și evidența săptămânală `jucător – item/Woni – cantitate` pentru tierurile la care au acces.
