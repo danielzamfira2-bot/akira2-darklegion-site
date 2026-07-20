@@ -15,9 +15,11 @@ const playersList = document.querySelector('#players-list');
 const adminSummary = document.querySelector('#admin-summary');
 const picker = document.querySelector('#item-picker');
 const pickerTitle = document.querySelector('#picker-title');
-const pickerName = document.querySelector('#picker-name');
-const pickerBonuses = document.querySelector('#picker-bonuses');
-const genericEditor = document.querySelector('#generic-editor');
+const pickerEyebrow = document.querySelector('#picker-eyebrow');
+const equipmentImageEditor = document.querySelector('#equipment-image-editor');
+const equipmentImageInput = document.querySelector('#equipment-image-input');
+const equipmentImagePreview = document.querySelector('#equipment-image-preview');
+const equipmentUploadStatus = document.querySelector('#equipment-upload-status');
 const alchemyEditor = document.querySelector('#alchemy-editor');
 const alchemyClarity = document.querySelector('#alchemy-clarity');
 const alchemyLevel = document.querySelector('#alchemy-level');
@@ -26,9 +28,12 @@ const alchemyPossibleValues = document.querySelector('#alchemy-possible-values')
 const alchemySelectionStatus = document.querySelector('#alchemy-selection-status');
 const alchemySource = document.querySelector('#alchemy-source');
 const applySlotButton = document.querySelector('#apply-slot');
+const clearSlotButton = document.querySelector('#clear-slot');
 const alchemyCatalog = window.ALCHEMY_CATALOG;
 
 let activeSlot = null;
+let pendingEquipmentImage = null;
+let pendingPreviewUrl = '';
 let equipmentState = Object.fromEntries(equipmentFields.map(field => [field, emptySlot()]));
 let alchemyState = Object.fromEntries(alchemyFields.map(field => [field, emptySlot()]));
 
@@ -61,7 +66,7 @@ function escapeHtml(value = '') {
 }
 
 function safeItemImage(value = '') {
-  return /^(?:\/)?assets\/[a-z0-9_./-]+$/i.test(value) ? value : '';
+  return /^(?:(?:\/)?assets\/[a-z0-9_./-]+|\/api\/progress\/equipment\/\d+\/(?:weapon|armor|helmet|shield|bracelet|earrings|necklace|shoes|talisman|glove|sash|pet)\/image\?v=\d+)$/i.test(value) ? value : '';
 }
 
 function setField(name, value) {
@@ -90,7 +95,10 @@ function populateForm(profile) {
   if (!profile) return;
   ['characterName', 'race', 'level', 'championLevel', 'tier', 'notes'].forEach(field => setField(field, profile[field]));
   progressFields.forEach(field => setField(field, profile.progress?.[field]));
-  equipmentState = Object.fromEntries(equipmentFields.map(field => [field, normalizeSlot(profile.equipment?.[field])]));
+  equipmentState = Object.fromEntries(equipmentFields.map(field => {
+    const slot = normalizeSlot(profile.equipment?.[field]);
+    return safeItemImage(slot.image).startsWith('/api/progress/equipment/') ? [field, slot] : [field, emptySlot()];
+  }));
   alchemyState = Object.fromEntries(alchemyFields.map(field => [field, normalizeSlot(profile.alchemy?.[field])]));
   if (profile.equipment?.alchemy && !alchemyFields.some(field => alchemyState[field].name)) {
     alchemyState.diamond = normalizeSlot(profile.equipment.alchemy);
@@ -181,20 +189,71 @@ function alchemySlotFromSelection() {
   };
 }
 
+function showEquipmentPreview(source = '') {
+  if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+  pendingPreviewUrl = '';
+  if (!source) {
+    equipmentImagePreview.innerHTML = '<span>Nicio poză selectată</span>';
+    return;
+  }
+  if (source instanceof Blob) {
+    pendingPreviewUrl = URL.createObjectURL(source);
+    source = pendingPreviewUrl;
+  }
+  equipmentImagePreview.innerHTML = `<img src="${escapeHtml(source)}" alt="Previzualizare item">`;
+}
+
+async function optimizeEquipmentImage(file) {
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) throw new Error('Poza trebuie să fie PNG, JPG sau WEBP.');
+  const bitmap = await createImageBitmap(file);
+  const maxSide = 1800;
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', .9));
+  if (!blob) throw new Error('Poza nu a putut fi procesată.');
+  if (blob.size > 3 * 1024 * 1024) throw new Error('Poza este prea mare chiar și după optimizare.');
+  return blob;
+}
+
+async function uploadEquipmentImage() {
+  if (!pendingEquipmentImage) throw new Error('Alege mai întâi poza itemului.');
+  const response = await fetch(`/api/progress/equipment/${activeSlot.field}/image`, {
+    method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': pendingEquipmentImage.type }, body: pendingEquipmentImage
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || 'Poza nu a putut fi încărcată.');
+  return payload.image;
+}
+
 function openPicker(button) {
   activeSlot = { kind: button.dataset.kind, field: button.dataset.slot };
   const state = activeSlot.kind === 'alchemy' ? alchemyState[activeSlot.field] : equipmentState[activeSlot.field];
   const labels = activeSlot.kind === 'alchemy' ? alchemyLabels : equipmentLabels;
   pickerTitle.textContent = labels[activeSlot.field];
-  genericEditor.hidden = true;
+  equipmentImageEditor.hidden = true;
   alchemyEditor.hidden = true;
   applySlotButton.disabled = false;
+  pendingEquipmentImage = null;
+  equipmentImageInput.value = '';
 
   if (activeSlot.kind === 'equipment') {
-    genericEditor.hidden = false;
-    pickerName.value = state.name;
-    pickerBonuses.value = state.bonuses;
+    pickerEyebrow.textContent = 'POZĂ ECHIPAMENT';
+    pickerTitle.textContent = labels[activeSlot.field];
+    equipmentImageEditor.hidden = false;
+    equipmentUploadStatus.textContent = state.image ? 'Poți înlocui poza existentă selectând una nouă.' : 'Poza va fi redimensionată automat pentru a păstra textul itemului lizibil.';
+    equipmentUploadStatus.className = 'equipment-upload-status';
+    applySlotButton.textContent = state.image ? 'Înlocuiește poza' : 'Încarcă poza';
+    clearSlotButton.textContent = 'Șterge poza';
+    applySlotButton.disabled = true;
+    showEquipmentPreview(safeItemImage(state.image));
   } else {
+    pickerEyebrow.textContent = 'EDITOR ALCHIMIE';
+    applySlotButton.textContent = 'Aplică';
+    clearSlotButton.textContent = 'Golește slotul';
     alchemyEditor.hidden = false;
     configureAlchemyEditor(state);
   }
@@ -205,22 +264,63 @@ document.querySelectorAll('.inventory-slot, .alchemy-slot').forEach(button => {
   button.addEventListener('click', () => openPicker(button));
 });
 
-applySlotButton?.addEventListener('click', () => {
+equipmentImageInput?.addEventListener('change', async () => {
+  const file = equipmentImageInput.files?.[0];
+  if (!file) return;
+  applySlotButton.disabled = true;
+  equipmentUploadStatus.textContent = 'Se pregătește poza…';
+  equipmentUploadStatus.className = 'equipment-upload-status';
+  try {
+    pendingEquipmentImage = await optimizeEquipmentImage(file);
+    showEquipmentPreview(pendingEquipmentImage);
+    equipmentUploadStatus.textContent = `Poză pregătită · ${(pendingEquipmentImage.size / 1024).toFixed(0)} KB`;
+    equipmentUploadStatus.className = 'equipment-upload-status success';
+    applySlotButton.disabled = false;
+  } catch (error) {
+    pendingEquipmentImage = null;
+    showEquipmentPreview('');
+    equipmentUploadStatus.textContent = error.message;
+    equipmentUploadStatus.className = 'equipment-upload-status error';
+  }
+});
+
+applySlotButton?.addEventListener('click', async () => {
   if (!activeSlot) return;
-  const collection = activeSlot.kind === 'alchemy' ? alchemyState : equipmentState;
-  collection[activeSlot.field] = activeSlot.kind === 'alchemy'
-    ? alchemySlotFromSelection()
-    : { ...collection[activeSlot.field], name: pickerName.value.trim(), bonuses: pickerBonuses.value.trim() };
-  renderSlot(activeSlot.kind, activeSlot.field);
-  picker.close();
+  if (activeSlot.kind === 'alchemy') {
+    alchemyState[activeSlot.field] = alchemySlotFromSelection();
+    renderSlot('alchemy', activeSlot.field);
+    picker.close();
+    return;
+  }
+  picker.classList.add('is-uploading');
+  equipmentUploadStatus.textContent = 'Se încarcă poza în profil…';
+  try {
+    const image = await uploadEquipmentImage();
+    equipmentState[activeSlot.field] = { ...emptySlot(), itemId: 'uploaded-image', name: 'Poză încărcată', image };
+    renderSlot('equipment', activeSlot.field);
+    picker.close();
+  } catch (error) {
+    equipmentUploadStatus.textContent = error.message;
+    equipmentUploadStatus.className = 'equipment-upload-status error';
+  } finally {
+    picker.classList.remove('is-uploading');
+  }
 });
 
 alchemyClarity?.addEventListener('change', () => updateAlchemyLevels(0, selectedAlchemyBonusIds()));
 alchemyLevel?.addEventListener('change', () => renderAlchemyValues(selectedAlchemyBonusIds()));
 
-document.querySelector('#clear-slot')?.addEventListener('click', () => {
+document.querySelector('#clear-slot')?.addEventListener('click', async () => {
   if (!activeSlot) return;
   const collection = activeSlot.kind === 'alchemy' ? alchemyState : equipmentState;
+  if (activeSlot.kind === 'equipment') {
+    const response = await fetch(`/api/progress/equipment/${activeSlot.field}/image`, { method: 'DELETE', credentials: 'same-origin' });
+    if (!response.ok) {
+      equipmentUploadStatus.textContent = 'Poza nu a putut fi ștearsă.';
+      equipmentUploadStatus.className = 'equipment-upload-status error';
+      return;
+    }
+  }
   collection[activeSlot.field] = emptySlot();
   renderSlot(activeSlot.kind, activeSlot.field);
   picker.close();
@@ -245,7 +345,10 @@ function slotEntries(collection = {}, labels = {}) {
 
 function renderDefinitionList(entries) {
   if (!entries.length) return '<p>Nicio informație completată.</p>';
-  return `<dl>${entries.map(entry => `<div><dt>${escapeHtml(entry.label)}</dt><dd><strong>${escapeHtml(entry.name)}</strong>${entry.bonuses ? `<span>${escapeHtml(entry.bonuses)}</span>` : ''}</dd></div>`).join('')}</dl>`;
+  return `<dl>${entries.map(entry => {
+    const image = safeItemImage(entry.image);
+    return `<div><dt>${escapeHtml(entry.label)}</dt><dd><strong>${escapeHtml(entry.name)}</strong>${entry.bonuses ? `<span>${escapeHtml(entry.bonuses)}</span>` : ''}${image ? `<a class="admin-equipment-image" href="${image}" target="_blank" rel="noreferrer"><img src="${image}" alt="${escapeHtml(entry.label)}" loading="lazy"></a>` : ''}</dd></div>`;
+  }).join('')}</dl>`;
 }
 
 function renderPlayers(players) {
@@ -257,7 +360,7 @@ function renderPlayers(players) {
 
   playersList.innerHTML = players.map(player => {
     const profile = player.profile || {};
-    const equipment = slotEntries(profile.equipment, equipmentLabels);
+    const equipment = slotEntries(profile.equipment, equipmentLabels).filter(entry => safeItemImage(entry.image));
     const alchemy = slotEntries(profile.alchemy, alchemyLabels);
     const progression = Object.entries(profile.progress || {}).filter(([, value]) => value).map(([key, value]) => ({ label: progressLabels[key] || key, name: value, bonuses: '' }));
     const avatar = player.discord_avatar ? `<img src="${escapeHtml(player.discord_avatar)}" alt="">` : '<span class="avatar-fallback">D</span>';

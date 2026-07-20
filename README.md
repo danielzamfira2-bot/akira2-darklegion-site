@@ -57,4 +57,6 @@ Botul poate continua să acorde și să retragă rolurile. Site-ul le verifică 
 
 Membrii autentificați își pot salva echipamentul și progresul în pagina `progres.html`. Datele sunt păstrate în PostgreSQL. Adminul vede toate profilurile, iar fiecare Responsabil vede numai profilurile tierului configurat pentru rolul său. Adminul și Responsabilii pot gestiona și evidența săptămânală `jucător – item/Woni – cantitate` pentru tierurile la care au acces.
 
+Pozele echipamentelor sunt optimizate în browser și salvate persistent în tabelul PostgreSQL `equipment_images` (maximum 3 MB/slot). Fiecare membru își poate încărca, înlocui sau șterge propriile poze; imaginile altui membru sunt servite numai Adminului sau Responsabilului tierului corespunzător.
+
 Evidența săptămânală și anunțurile se administrează din `responsabil.html`. Linkul paginii apare automat în navigație numai pentru Admin și Responsabili. Anunțurile active sunt afișate pe pagina principală utilizatorilor autentificați din tierul corespunzător.

@@ -173,6 +173,40 @@ function normalizePlayerProfile(body = {}) {
   };
 }
 
+function equipmentImageUrl(userId, slot, updatedAt = Date.now()) {
+  return `/api/progress/equipment/${encodeURIComponent(userId)}/${slot}/image?v=${new Date(updatedAt).getTime() || Date.now()}`;
+}
+
+async function attachEquipmentImages(rows = []) {
+  if (!rows.length) return rows;
+  const userIds = rows.map(row => row.discord_user_id).filter(Boolean);
+  if (!userIds.length) return rows;
+  const images = await databasePool.query(
+    'SELECT discord_user_id, slot, updated_at FROM equipment_images WHERE discord_user_id = ANY($1::text[])',
+    [userIds]
+  );
+  const byUser = new Map();
+  images.rows.forEach(image => {
+    if (!byUser.has(image.discord_user_id)) byUser.set(image.discord_user_id, []);
+    byUser.get(image.discord_user_id).push(image);
+  });
+  rows.forEach(row => {
+    const profile = row.profile || {};
+    profile.equipment ||= {};
+    (byUser.get(row.discord_user_id) || []).forEach(image => {
+      const current = normalizeItemSlot(profile.equipment[image.slot]);
+      profile.equipment[image.slot] = {
+        ...current,
+        itemId: 'uploaded-image',
+        name: 'Poză încărcată',
+        image: equipmentImageUrl(row.discord_user_id, image.slot, image.updated_at)
+      };
+    });
+    row.profile = profile;
+  });
+  return rows;
+}
+
 async function discordRequest(endpoint, token, type = 'Bearer') {
   const response = await fetch(`${DISCORD_API}${endpoint}`, {
     headers: { Authorization: `${type} ${token}` }
@@ -339,6 +373,11 @@ app.get('/api/progress/me', requireLogin, requireDatabase, async (req, res) => {
        WHERE discord_user_id = $1`,
       [req.session.user.id]
     );
+    if (result.rows[0]) {
+      result.rows[0].discord_user_id = req.session.user.id;
+      await attachEquipmentImages(result.rows);
+      delete result.rows[0].discord_user_id;
+    }
     res.json({ user: req.session.user, progress: result.rows[0] || null });
   } catch (error) {
     console.error('Citirea progresului a eșuat:', error.message);
@@ -391,10 +430,81 @@ app.get('/api/progress/all', requireLogin, requireDatabase, async (req, res) => 
        ORDER BY updated_at DESC`
       , [tiers]
     );
+    await attachEquipmentImages(result.rows);
     res.json({ players: result.rows, managedTiers: tiers, isAdmin: canAdminProgress(req.session.roles || []) });
   } catch (error) {
     console.error('Lista progresului a eșuat:', error.message);
     res.status(500).json({ error: 'Lista jucătorilor nu a putut fi încărcată.' });
+  }
+});
+
+const equipmentImageBody = express.raw({ type: ['image/png', 'image/jpeg', 'image/webp'], limit: '3mb' });
+
+app.put('/api/progress/equipment/:slot/image', requireLogin, requireDatabase, equipmentImageBody, async (req, res) => {
+  const slot = String(req.params.slot || '').toLowerCase();
+  const mimeType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
+  if (!EQUIPMENT_FIELDS.includes(slot)) return res.status(404).json({ error: 'Slot de echipament inexistent.' });
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(mimeType) || !Buffer.isBuffer(req.body) || !req.body.length) {
+    return res.status(400).json({ error: 'Selectează o imagine PNG, JPG sau WEBP validă.' });
+  }
+  const signatures = {
+    'image/png': req.body.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+    'image/jpeg': req.body[0] === 0xff && req.body[1] === 0xd8,
+    'image/webp': req.body.subarray(0, 4).toString() === 'RIFF' && req.body.subarray(8, 12).toString() === 'WEBP'
+  };
+  if (!signatures[mimeType]) return res.status(400).json({ error: 'Conținutul fișierului nu este o imagine validă.' });
+  try {
+    const result = await databasePool.query(
+      `INSERT INTO equipment_images (discord_user_id, slot, mime_type, image_data, updated_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (discord_user_id, slot) DO UPDATE SET mime_type = EXCLUDED.mime_type, image_data = EXCLUDED.image_data, updated_at = NOW()
+       RETURNING updated_at`,
+      [req.session.user.id, slot, mimeType, req.body]
+    );
+    res.json({ saved: true, image: equipmentImageUrl(req.session.user.id, slot, result.rows[0].updated_at) });
+  } catch (error) {
+    console.error('Încărcarea imaginii de echipament a eșuat:', error.message);
+    res.status(500).json({ error: 'Poza nu a putut fi salvată.' });
+  }
+});
+
+app.delete('/api/progress/equipment/:slot/image', requireLogin, requireDatabase, async (req, res) => {
+  const slot = String(req.params.slot || '').toLowerCase();
+  if (!EQUIPMENT_FIELDS.includes(slot)) return res.status(404).json({ error: 'Slot de echipament inexistent.' });
+  try {
+    await databasePool.query('DELETE FROM equipment_images WHERE discord_user_id = $1 AND slot = $2', [req.session.user.id, slot]);
+    res.status(204).end();
+  } catch (error) {
+    console.error('Ștergerea imaginii de echipament a eșuat:', error.message);
+    res.status(500).json({ error: 'Poza nu a putut fi ștearsă.' });
+  }
+});
+
+app.get('/api/progress/equipment/:userId/:slot/image', requireLogin, requireDatabase, async (req, res) => {
+  res.set('Cache-Control', 'private, max-age=300');
+  const userId = cleanText(req.params.userId, 30);
+  const slot = String(req.params.slot || '').toLowerCase();
+  if (!EQUIPMENT_FIELDS.includes(slot)) return res.status(404).end();
+  await refreshRoles(req);
+  if (userId !== req.session.user.id) {
+    const tiers = manageableTiers(req.session.roles || []);
+    if (!tiers.length) return res.status(403).end();
+    const target = await databasePool.query(
+      `SELECT 1 FROM player_progress WHERE discord_user_id = $1 AND COALESCE((profile->>'tier')::int, 1) = ANY($2::int[])`,
+      [userId, tiers]
+    );
+    if (!target.rowCount) return res.status(403).end();
+  }
+  try {
+    const result = await databasePool.query(
+      'SELECT mime_type, image_data, updated_at FROM equipment_images WHERE discord_user_id = $1 AND slot = $2',
+      [userId, slot]
+    );
+    if (!result.rowCount) return res.status(404).end();
+    res.type(result.rows[0].mime_type).send(result.rows[0].image_data);
+  } catch (error) {
+    console.error('Citirea imaginii de echipament a eșuat:', error.message);
+    res.status(500).end();
   }
 });
 
@@ -618,7 +728,7 @@ const publicFiles = new Set([
   'events.html', 'events.css', 'events.js', 'events-nav.css',
   'regulament.html', 'regulament.css', 'access.html', 'access.css', 'access.js',
   'farm.html', 'farm.css', 'farm.js',
-  'progres.html', 'progres.css', 'progres-inventory.css', 'progres-ruby.css', 'weekly-tasks.css', 'alchemy-data.js', 'progres.js', 'weekly-tasks.js',
+  'progres.html', 'progres.css', 'progres-inventory.css', 'progres-ruby.css', 'equipment-upload.css', 'weekly-tasks.css', 'alchemy-data.js', 'progres.js', 'weekly-tasks.js',
   'responsabil.html', 'responsabil.css', 'responsabil.js',
   'race-guide.css', 'race-guide.js', 'tier-guide.css', 'protected-guide.css',
   'auth-ui.js', 'auth-ui.css'
@@ -631,6 +741,10 @@ app.get('/:file', (req, res, next) => {
   if (!publicFiles.has(req.params.file)) return next();
   res.sendFile(req.params.file, { root: ROOT });
 });
+app.use((error, _req, res, next) => {
+  if (error?.type === 'entity.too.large') return res.status(413).json({ error: 'Poza depășește limita de 3 MB.' });
+  next(error);
+});
 app.use((_req, res) => res.status(404).send('Pagina nu a fost găsită.'));
 
 async function startServer() {
@@ -642,6 +756,16 @@ async function startServer() {
         discord_avatar TEXT,
         profile JSONB NOT NULL DEFAULT '{}'::jsonb,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await databasePool.query(`
+      CREATE TABLE IF NOT EXISTS equipment_images (
+        discord_user_id TEXT NOT NULL,
+        slot TEXT NOT NULL,
+        mime_type TEXT NOT NULL,
+        image_data BYTEA NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (discord_user_id, slot)
       )
     `);
     await databasePool.query(`

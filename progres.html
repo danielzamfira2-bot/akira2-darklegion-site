@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="progres.css">
   <link rel="stylesheet" href="progres-inventory.css">
   <link rel="stylesheet" href="progres-ruby.css">
+  <link rel="stylesheet" href="equipment-upload.css">
   <style>[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -115,11 +116,14 @@
 
     <dialog id="item-picker" class="item-picker">
       <form method="dialog" id="item-picker-form">
-        <header><div><p class="eyebrow">EDITOR SLOT</p><h2 id="picker-title">Selectează itemul</h2></div><button class="dialog-close" value="cancel" aria-label="Închide">×</button></header>
-        <div id="generic-editor" class="generic-editor">
-          <div class="catalog-items"><span>CATALOG ÎN PREGĂTIRE</span><p>Aici vor apărea itemele și pozele pe care mi le vei furniza.</p></div>
-          <label><span>Numele itemului</span><input id="picker-name" maxlength="120" placeholder="Ex: Sabie Zodiac +9"></label>
-          <label><span>Bonusuri și detalii</span><textarea id="picker-bonuses" maxlength="500" rows="5" placeholder="Ex: 45% medie, 10 Pătrundere, 7% Mob"></textarea></label>
+        <header><div><p class="eyebrow" id="picker-eyebrow">ECHIPAMENT</p><h2 id="picker-title">Încarcă poza itemului</h2></div><button class="dialog-close" value="cancel" aria-label="Închide">×</button></header>
+        <div id="equipment-image-editor" class="equipment-image-editor">
+          <label class="equipment-dropzone" for="equipment-image-input">
+            <input id="equipment-image-input" type="file" accept="image/png,image/jpeg,image/webp">
+            <span class="upload-symbol">＋</span><strong>Alege captura itemului</strong><small>PNG, JPG sau WEBP · maximum 3 MB după optimizare</small>
+          </label>
+          <div id="equipment-image-preview" class="equipment-image-preview"><span>Nicio poză selectată</span></div>
+          <p id="equipment-upload-status" class="equipment-upload-status" role="status">Poza va fi redimensionată automat pentru a păstra textul itemului lizibil.</p>
         </div>
         <div id="alchemy-editor" class="ruby-editor" hidden>
           <div class="ruby-selectors"><label><span>Grad de claritate</span><select id="alchemy-clarity"></select></label><label><span>Nivelul pietrei</span><select id="alchemy-level"></select></label></div>
@@ -127,7 +131,7 @@
           <section class="ruby-possible"><header><span>BONUSURI POSIBILE</span><small>Selectează maximum 3</small></header><div id="alchemy-possible-values"></div><p id="alchemy-selection-status">0 din 3 bonusuri selectate</p></section>
           <a id="alchemy-source" class="alchemy-source" target="_blank" rel="noreferrer">Valori: Metin2 Wiki oficial →</a>
         </div>
-        <footer><button type="button" id="clear-slot" class="clear-slot">Golește slotul</button><div><button value="cancel" class="cancel-button">Renunță</button><button type="button" id="apply-slot" class="apply-slot">Aplică</button></div></footer>
+        <footer><button type="button" id="clear-slot" class="clear-slot">Șterge poza</button><div><button value="cancel" class="cancel-button">Renunță</button><button type="button" id="apply-slot" class="apply-slot">Încarcă poza</button></div></footer>
       </form>
     </dialog>
   </main>
