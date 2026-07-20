@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="progres-inventory.css">
   <link rel="stylesheet" href="progres-ruby.css">
   <link rel="stylesheet" href="equipment-upload.css">
+  <link rel="stylesheet" href="equipment-viewer.css">
   <style>[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -133,6 +134,22 @@
         </div>
         <footer><button type="button" id="clear-slot" class="clear-slot">Șterge poza</button><div><button value="cancel" class="cancel-button">Renunță</button><button type="button" id="apply-slot" class="apply-slot">Încarcă poza</button></div></footer>
       </form>
+    </dialog>
+
+    <dialog id="equipment-viewer" class="equipment-viewer">
+      <header><div><p class="eyebrow">ECHIPAMENT JUCĂTOR</p><h2 id="equipment-viewer-title">Inventar</h2><span id="equipment-viewer-meta"></span></div><button type="button" class="dialog-close" data-close-equipment aria-label="Închide">×</button></header>
+      <div class="equipment-window viewer-window">
+        <div class="window-title"><span>Fereastră Echipament</span><i>×</i></div>
+        <div id="equipment-viewer-board" class="equipment-board">
+          <div class="character-silhouette"><span>AKIRA2</span><b>◇</b><small>DARKLEGION</small></div>
+        </div>
+      </div>
+      <p class="viewer-help">Apasă pe un item pentru a vedea captura la dimensiune mare.</p>
+    </dialog>
+
+    <dialog id="equipment-lightbox" class="equipment-lightbox">
+      <header><div><p class="eyebrow">CAPTURĂ ITEM</p><h2 id="equipment-lightbox-title">Item</h2></div><button type="button" class="dialog-close" data-close-lightbox aria-label="Închide">×</button></header>
+      <div class="lightbox-image"><img id="equipment-lightbox-image" alt="Captură item"></div>
     </dialog>
   </main>
 

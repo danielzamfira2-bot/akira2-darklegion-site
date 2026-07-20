@@ -13,6 +13,10 @@ const saveStatus = document.querySelector('#save-status');
 const adminPanel = document.querySelector('#admin-panel');
 const playersList = document.querySelector('#players-list');
 const adminSummary = document.querySelector('#admin-summary');
+const equipmentViewer = document.querySelector('#equipment-viewer');
+const equipmentViewerBoard = document.querySelector('#equipment-viewer-board');
+const equipmentLightbox = document.querySelector('#equipment-lightbox');
+const equipmentLightboxImage = document.querySelector('#equipment-lightbox-image');
 const picker = document.querySelector('#item-picker');
 const pickerTitle = document.querySelector('#picker-title');
 const pickerEyebrow = document.querySelector('#picker-eyebrow');
@@ -34,6 +38,7 @@ const alchemyCatalog = window.ALCHEMY_CATALOG;
 let activeSlot = null;
 let pendingEquipmentImage = null;
 let pendingPreviewUrl = '';
+let managedPlayers = new Map();
 let equipmentState = Object.fromEntries(equipmentFields.map(field => [field, emptySlot()]));
 let alchemyState = Object.fromEntries(alchemyFields.map(field => [field, emptySlot()]));
 
@@ -352,6 +357,7 @@ function renderDefinitionList(entries) {
 }
 
 function renderPlayers(players) {
+  managedPlayers = new Map(players.map(player => [String(player.discord_user_id), player]));
   adminSummary.innerHTML = `<article><strong>${players.length}</strong><span>profiluri salvate</span></article><article><strong>${players.filter(player => player.profile?.tier === 3).length}</strong><span>jucători Tier III</span></article><article><strong>${players.filter(player => player.profile?.championLevel > 0).length}</strong><span>nivel Campion</span></article>`;
   if (!players.length) {
     playersList.innerHTML = '<p class="empty-state">Niciun membru nu și-a salvat încă progresul.</p>';
@@ -360,20 +366,65 @@ function renderPlayers(players) {
 
   playersList.innerHTML = players.map(player => {
     const profile = player.profile || {};
-    const equipment = slotEntries(profile.equipment, equipmentLabels).filter(entry => safeItemImage(entry.image));
     const alchemy = slotEntries(profile.alchemy, alchemyLabels);
     const progression = Object.entries(profile.progress || {}).filter(([, value]) => value).map(([key, value]) => ({ label: progressLabels[key] || key, name: value, bonuses: '' }));
     const avatar = player.discord_avatar ? `<img src="${escapeHtml(player.discord_avatar)}" alt="">` : '<span class="avatar-fallback">D</span>';
     return `<details class="player-card">
-      <summary>${avatar}<div><strong>${escapeHtml(profile.characterName || 'Personaj fără nume')}</strong><span>${escapeHtml(player.discord_username)} · ${escapeHtml(raceLabels[profile.race] || profile.race || 'Rasă nesetată')}</span></div><div class="player-level"><b>Tier ${Number(profile.tier) || 1}</b><span>Lv. ${Number(profile.level) || 1}${profile.championLevel ? ` · C${Number(profile.championLevel)}` : ''}</span></div><i>＋</i></summary>
+      <summary>${avatar}<div><strong>${escapeHtml(profile.characterName || 'Personaj fără nume')}</strong><span>${escapeHtml(player.discord_username)} · ${escapeHtml(raceLabels[profile.race] || profile.race || 'Rasă nesetată')}</span></div><div class="player-level"><b>Tier ${Number(profile.tier) || 1}</b><span>Lv. ${Number(profile.level) || 1}${profile.championLevel ? ` · C${Number(profile.championLevel)}` : ''}</span></div><button type="button" class="view-equipment-button" data-view-equipment="${escapeHtml(player.discord_user_id)}">Echipament</button><i>＋</i></summary>
       <div class="player-details">
-        <section><h3>Echipament</h3>${renderDefinitionList(equipment)}</section>
         <section><h3>Alchimie</h3>${renderDefinitionList(alchemy)}</section>
         <section><h3>Progres</h3>${renderDefinitionList(progression)}${profile.notes ? `<div class="admin-notes"><strong>Observații</strong><p>${escapeHtml(profile.notes)}</p></div>` : ''}</section>
       </div><footer>Actualizat: ${new Date(player.updated_at).toLocaleString('ro-RO')}</footer>
     </details>`;
   }).join('');
 }
+
+function openEquipmentViewer(player) {
+  const profile = player.profile || {};
+  document.querySelector('#equipment-viewer-title').textContent = profile.characterName || player.discord_username || 'Inventar';
+  document.querySelector('#equipment-viewer-meta').textContent = `${player.discord_username} · Tier ${Number(profile.tier) || 1}`;
+  equipmentViewerBoard.querySelectorAll('.viewer-slot').forEach(slot => slot.remove());
+  equipmentFields.forEach(field => {
+    const state = normalizeSlot(profile.equipment?.[field]);
+    const image = safeItemImage(state.image);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `inventory-slot slot-${field} viewer-slot${image ? ' filled has-image' : ''}`;
+    button.dataset.viewerImage = image;
+    button.dataset.viewerLabel = equipmentLabels[field];
+    button.disabled = !image;
+    button.innerHTML = `<span class="slot-icon">◇</span><small>${escapeHtml(equipmentLabels[field])}</small><b>${image ? 'Poză încărcată' : 'Slot liber'}</b>`;
+    button.style.setProperty('--item-image', image ? `url("${image}")` : 'none');
+    equipmentViewerBoard.appendChild(button);
+  });
+  equipmentViewer.showModal();
+}
+
+playersList?.addEventListener('click', event => {
+  const button = event.target.closest('[data-view-equipment]');
+  if (!button) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const player = managedPlayers.get(button.dataset.viewEquipment);
+  if (player) openEquipmentViewer(player);
+});
+
+equipmentViewerBoard?.addEventListener('click', event => {
+  const slot = event.target.closest('[data-viewer-image]');
+  if (!slot?.dataset.viewerImage) return;
+  document.querySelector('#equipment-lightbox-title').textContent = slot.dataset.viewerLabel;
+  equipmentLightboxImage.src = slot.dataset.viewerImage;
+  equipmentLightboxImage.alt = `Captură ${slot.dataset.viewerLabel}`;
+  equipmentLightbox.showModal();
+});
+
+document.querySelector('[data-close-equipment]')?.addEventListener('click', () => equipmentViewer.close());
+document.querySelector('[data-close-lightbox]')?.addEventListener('click', () => equipmentLightbox.close());
+equipmentViewer?.addEventListener('click', event => { if (event.target === equipmentViewer) equipmentViewer.close(); });
+equipmentLightbox?.addEventListener('click', event => { if (event.target === equipmentLightbox) equipmentLightbox.close(); });
+equipmentLightbox?.addEventListener('close', () => {
+  equipmentLightboxImage.removeAttribute('src');
+});
 
 async function loadAdminPlayers() {
   playersList.innerHTML = '<p class="empty-state">Se încarcă profilurile…</p>';

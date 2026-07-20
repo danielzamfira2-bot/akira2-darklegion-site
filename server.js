@@ -728,7 +728,7 @@ const publicFiles = new Set([
   'events.html', 'events.css', 'events.js', 'events-nav.css',
   'regulament.html', 'regulament.css', 'access.html', 'access.css', 'access.js',
   'farm.html', 'farm.css', 'farm.js',
-  'progres.html', 'progres.css', 'progres-inventory.css', 'progres-ruby.css', 'equipment-upload.css', 'weekly-tasks.css', 'alchemy-data.js', 'progres.js', 'weekly-tasks.js',
+  'progres.html', 'progres.css', 'progres-inventory.css', 'progres-ruby.css', 'equipment-upload.css', 'equipment-viewer.css', 'weekly-tasks.css', 'alchemy-data.js', 'progres.js', 'weekly-tasks.js',
   'responsabil.html', 'responsabil.css', 'responsabil.js',
   'race-guide.css', 'race-guide.js', 'tier-guide.css', 'protected-guide.css',
   'auth-ui.js', 'auth-ui.css'
