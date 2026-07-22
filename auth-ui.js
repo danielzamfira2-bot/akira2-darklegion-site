@@ -12,6 +12,15 @@
   control.innerHTML = '<span class="auth-loading">Discord…</span>';
   header.appendChild(control);
 
+  const navigation = document.querySelector('.main-nav, .progress-nav, .events-nav, .rules-nav, .guide-nav');
+  if (navigation && !navigation.querySelector('a[href="bosses.html"], a[href="/bosses.html"]')) {
+    const bossesLink = document.createElement('a');
+    bossesLink.href = '/bosses.html';
+    bossesLink.textContent = 'Spawn Boși';
+    const progressLink = [...navigation.querySelectorAll('a')].find(item => item.getAttribute('href')?.includes('progres'));
+    progressLink ? navigation.insertBefore(bossesLink, progressLink) : navigation.appendChild(bossesLink);
+  }
+
   fetch('/api/me', { credentials: 'same-origin' })
     .then(response => response.json())
     .then(me => {

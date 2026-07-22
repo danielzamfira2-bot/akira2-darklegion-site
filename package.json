@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "check": "node --check server.js && node --check script.js && node --check race-guide.js && node --check auth-ui.js && node --check farm.js && node --check events.js && node --check alchemy-data.js && node --check progres.js && node --check weekly-tasks.js && node --check responsabil.js"
+    "check": "node --check server.js && node --check script.js && node --check bosses.js && node --check race-guide.js && node --check auth-ui.js && node --check farm.js && node --check events.js && node --check alchemy-data.js && node --check progres.js && node --check weekly-tasks.js && node --check responsabil.js"
   },
   "dependencies": {
     "connect-pg-simple": "^10.0.0",

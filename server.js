@@ -725,6 +725,7 @@ app.delete('/api/announcements/:id', requireLogin, requireDatabase, async (req, 
 
 const publicFiles = new Set([
   'index.html', 'styles.css', 'announcements.css', 'script.js', 'guide-basics.css', 'guide.js',
+  'bosses.html', 'bosses.css', 'bosses-map.css', 'bosses.js',
   'events.html', 'events.css', 'events.js', 'events-nav.css',
   'regulament.html', 'regulament.css', 'access.html', 'access.css', 'access.js',
   'farm.html', 'farm.css', 'farm.js',

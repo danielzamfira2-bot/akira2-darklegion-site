@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Locațiile de spawn ale boșilor Akira2 DarkLegion">
+  <title>Akira2 DarkLegion — Spawn Boși</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="progres.css">
+  <link rel="stylesheet" href="bosses.css">
+  <link rel="stylesheet" href="bosses-map.css">
+</head>
+<body>
+  <header class="progress-header">
+    <a class="brand" href="index.html">AKIRA<span>2</span><small>DARKLEGION</small></a>
+    <button class="menu-button" aria-expanded="false" aria-label="Deschide meniul">☰</button>
+    <nav class="progress-nav"><a href="index.html">Acasă</a><a href="events.html">Evenimente</a><a href="index.html#rase">Ghiduri rase</a><a href="farm.html">Strategie Farm</a><a class="active" href="bosses.html">Spawn Boși</a><a href="progres.html">Progres</a><a href="regulament.html">Regulament</a></nav>
+  </header>
+
+  <main class="boss-page">
+    <section class="boss-hero">
+      <p class="eyebrow">HĂRȚI ȘI LOCAȚII</p><h1>Spawn <em>Boși</em></h1><p>Alege bossul, verifică punctul marcat pe hartă și compară zona cu imaginea din joc.</p>
+    </section>
+    <div class="boss-filters" role="group" aria-label="Filtrare după hartă"><button class="active" data-map-filter="all">Toate</button><button data-map-filter="map1">Map 1 Yohara</button><button data-map-filter="map2">Map 2 Yohara</button></div>
+    <section id="boss-list" class="boss-list" aria-live="polite"></section>
+  </main>
+
+  <dialog id="boss-lightbox" class="boss-lightbox"><header><div><p class="eyebrow" id="lightbox-kind">IMAGINE</p><h2 id="lightbox-title">Locație</h2></div><button type="button" aria-label="Închide">×</button></header><div><img id="lightbox-image" alt=""></div></dialog>
+  <footer><span>AKIRA2 DARKLEGION</span><p>Pozițiile sunt orientative și pot fi actualizate odată cu jocul.</p></footer>
+  <script src="bosses.js"></script><script src="/auth-ui.js"></script>
+</body>
+</html>
